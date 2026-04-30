@@ -1,0 +1,22 @@
+{
+  "name": "cti-platform-backend",
+  "version": "1.0.0",
+  "description": "Cyber Threat Intelligence Platform — Express API",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.4.1",
+    "neo4j-driver": "^5.21.0",
+    "redis": "^4.6.14"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.3"
+  }
+}
