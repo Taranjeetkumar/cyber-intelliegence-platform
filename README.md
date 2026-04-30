@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# cyber-intelliegence-platform
-=======
 # Cyber Threat Intelligence Platform
 
 ## Prerequisites (install these first)
@@ -111,4 +108,3 @@ npm start
 
 Browser opens at http://localhost:3000
 
->>>>>>> 69fb4a9 (use cases Neo4j graph traversal)
