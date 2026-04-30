@@ -1,4 +1,4 @@
-// Global error handler — must have 4 params for Express to treat it as error middleware
+// Global error handler
 const errorHandler = (err, req, res, next) => {
   console.error(`[${new Date().toISOString()}] ${err.stack}`);
   res.status(err.status || 500).json({
