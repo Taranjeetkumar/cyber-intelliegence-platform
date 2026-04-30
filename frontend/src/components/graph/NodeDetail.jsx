@@ -13,7 +13,7 @@ const GROUP_BADGE_COLORS = {
   Service:     "#888780",
 };
 
-const NodeDetail = ({ node, mongoDetail, activeCampaigns }) => {
+const NodeDetail = ({ node, mongoDetail, abuseIpDb, otx, activeCampaigns }) => {
   if (!node) {
     return (
       <div style={styles.empty}>
@@ -24,9 +24,12 @@ const NodeDetail = ({ node, mongoDetail, activeCampaigns }) => {
 
   const badgeColor = GROUP_BADGE_COLORS[node.group] || "#888";
   const props = node.properties || {};
+  const abuseData = abuseIpDb?.data;
+  const otxGeneral = otx?.general;
+  const otxReputation = otx?.reputation;
+  const otxPulseInfo = otxGeneral?.pulse_info;
+  const otxPulses = otxPulseInfo?.pulses || [];
 
-  console.log('props : ', props)
-  console.log('mongo confidence : ', mongoDetail.confidence)
   return (
     <div style={styles.panel}>
       {/* Header */}
@@ -77,6 +80,94 @@ const NodeDetail = ({ node, mongoDetail, activeCampaigns }) => {
               <p style={styles.key}>analyst notes</p>
               <p style={styles.notes}>{mongoDetail.analyst_notes}</p>
             </div>
+          )}
+        </div>
+      )}
+
+      {node.group === "IP" && (
+        <div style={styles.section}>
+          <p style={styles.sectionTitle}>AbuseIPDB reputation</p>
+          {!abuseIpDb?.configured && (
+            <p style={styles.notes}>Set ABUSEIPDB_API_KEY in backend/.env to enable live reputation checks.</p>
+          )}
+          {abuseIpDb?.error && abuseIpDb.configured && (
+            <p style={styles.notes}>{abuseIpDb.error}</p>
+          )}
+          {abuseData && (
+            <>
+              <div style={styles.row}>
+                <span style={styles.key}>abuse score</span>
+                <span style={styles.val}>{abuseData.abuseConfidenceScore ?? "n/a"}</span>
+              </div>
+              <div style={styles.row}>
+                <span style={styles.key}>total reports</span>
+                <span style={styles.val}>{abuseData.totalReports ?? "n/a"}</span>
+              </div>
+              <div style={styles.row}>
+                <span style={styles.key}>country</span>
+                <span style={styles.val}>{abuseData.countryCode || "n/a"}</span>
+              </div>
+              <div style={styles.row}>
+                <span style={styles.key}>isp</span>
+                <span style={styles.val}>{abuseData.isp || "n/a"}</span>
+              </div>
+              <div style={styles.row}>
+                <span style={styles.key}>usage</span>
+                <span style={styles.val}>{abuseData.usageType || "n/a"}</span>
+              </div>
+              <div style={styles.row}>
+                <span style={styles.key}>last reported</span>
+                <span style={styles.val}>{abuseData.lastReportedAt || "n/a"}</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {node.group === "IP" && (
+        <div style={styles.section}>
+          <p style={styles.sectionTitle}>AlienVault OTX</p>
+          {otx?.errors?.length > 0 && (
+            <p style={styles.notes}>{otx.errors.join("; ")}</p>
+          )}
+          {!otx?.configured && (
+            <p style={styles.notes}>
+              Public OTX indicator data is enabled. Set OTX_API_KEY in backend/.env for authenticated access.
+            </p>
+          )}
+          {otxGeneral && (
+            <>
+              <div style={styles.row}>
+                <span style={styles.key}>pulse count</span>
+                <span style={styles.val}>{otxPulseInfo?.count ?? 0}</span>
+              </div>
+              <div style={styles.row}>
+                <span style={styles.key}>reputation</span>
+                <span style={styles.val}>{otxReputation?.reputation ?? otxGeneral.reputation ?? "n/a"}</span>
+              </div>
+              <div style={styles.row}>
+                <span style={styles.key}>country</span>
+                <span style={styles.val}>{otxGeneral.country_name || otxGeneral.country_code || "n/a"}</span>
+              </div>
+              <div style={styles.row}>
+                <span style={styles.key}>asn</span>
+                <span style={styles.val}>{otxGeneral.asn || "n/a"}</span>
+              </div>
+              <div style={styles.row}>
+                <span style={styles.key}>sections</span>
+                <span style={styles.val}>{otxGeneral.sections?.join(", ") || "n/a"}</span>
+              </div>
+              {otxPulses.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <p style={styles.key}>latest pulses</p>
+                  {otxPulses.slice(0, 3).map((pulse) => (
+                    <p key={pulse.id || pulse.name} style={styles.notes}>
+                      {pulse.name || pulse.id}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -133,6 +133,8 @@ const InvestigationPage = () => {
               <NodeDetail
                 node={selectedNode}
                 mongoDetail={result.mongoDetail}
+                abuseIpDb={result.abuseIpDb}
+                otx={result.otx}
                 activeCampaigns={result.activeCampaigns}
               />
             </div>

@@ -1,6 +1,8 @@
 const { getNeo4jSession } = require("../config/neo4j");
 const { getRedis } = require("../config/redis");
 const IOC = require("../models/IOC");
+const { checkIpReputation } = require("./abuseIpDbService");
+const { checkIpThreatIntel } = require("./otxService");
 
 // ── Helper: convert Neo4j Integer to JS number ─────────────────────────────
 const toNum = (val) =>
@@ -92,6 +94,9 @@ const investigateIP = async (ipValue) => {
       { enrichment: 1, tags: 1, confidence: 1, last_seen: 1, source: 1, analyst_notes: 1 }
     ).lean();
 
+    const abuseIpDb = await checkIpReputation(ipValue);
+    const otx = await checkIpThreatIntel(ipValue);
+
     // ── Step 3: Redis — which campaigns from this path are currently active? ─
     const redis = getRedis();
     const campaignNodes = [...nodesMap.values()].filter(
@@ -146,6 +151,8 @@ const investigateIP = async (ipValue) => {
         edges,
       },
       mongoDetail: mongoRecord,
+      abuseIpDb,
+      otx,
       activeCampaigns,
       stats: {
         totalNodes: nodesMap.size,
