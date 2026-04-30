@@ -1,6 +1,6 @@
 const { investigateIP, listKnownIPs } = require("../services/investigationService");
 
-// GET /api/investigate/ip?value=203.0.113.47
+// GET /api/investigate/ip?value=
 const investigate = async (req, res) => {
   const { value } = req.query;
 
