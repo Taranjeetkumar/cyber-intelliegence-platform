@@ -71,6 +71,7 @@ const NodeDetail = ({ node, mongoDetail, activeCampaigns }) => {
               <span style={styles.val}>{String(v)}</span>
             </div>
           ))}
+          
           {mongoDetail.analyst_notes && (
             <div style={{ marginTop: 8 }}>
               <p style={styles.key}>analyst notes</p>
