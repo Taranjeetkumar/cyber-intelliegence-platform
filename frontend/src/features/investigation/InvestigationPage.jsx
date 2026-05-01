@@ -24,6 +24,7 @@ const InvestigationPage = () => {
   const selectedNode = useSelector(selectSelectedNode);
   const status = useSelector(selectStatus);
   const error = useSelector(selectError);
+  const selectedIPValue = selectedIP.trim();
 
   // Load dropdown options on mount
   useEffect(() => {
@@ -31,7 +32,7 @@ const InvestigationPage = () => {
   }, [dispatch]);
 
   const handleInvestigate = () => {
-    if (selectedIP) dispatch(investigateIP(selectedIP));
+    if (selectedIPValue) dispatch(investigateIP(selectedIPValue));
   };
 
   const handleClear = () => dispatch(clearResult());
@@ -57,11 +58,11 @@ const InvestigationPage = () => {
       {/* ── Search bar ─────────────────────────────────────── */}
       <div style={styles.searchBar}>
         <div style={styles.searchInner}>
-          <label style={styles.searchLabel}>Select suspicious IP</label>
+          <label style={styles.searchLabel}>Select or enter suspicious IP</label>
           <div style={styles.searchRow}>
             <select
               style={styles.select}
-              value={selectedIP}
+              value={knownIPs.includes(selectedIP) ? selectedIP : ""}
               onChange={(e) => dispatch(setSelectedIP(e.target.value))}
             >
               <option value="">-- choose an IP --</option>
@@ -69,14 +70,20 @@ const InvestigationPage = () => {
                 <option key={ip} value={ip}>{ip}</option>
               ))}
             </select>
+            <input
+              style={styles.input}
+              value={selectedIP}
+              onChange={(e) => dispatch(setSelectedIP(e.target.value))}
+              placeholder="or type a public IP"
+            />
             <button
               style={{
                 ...styles.btn,
-                opacity: status === "loading" || !selectedIP ? 0.5 : 1,
-                cursor: status === "loading" || !selectedIP ? "not-allowed" : "pointer",
+                opacity: status === "loading" || !selectedIPValue ? 0.5 : 1,
+                cursor: status === "loading" || !selectedIPValue ? "not-allowed" : "pointer",
               }}
               onClick={handleInvestigate}
-              disabled={status === "loading" || !selectedIP}
+              disabled={status === "loading" || !selectedIPValue}
             >
               {status === "loading" ? "Investigating…" : "Investigate →"}
             </button>
@@ -111,7 +118,8 @@ const InvestigationPage = () => {
             <div style={styles.graphCol}>
               <SectionTitle>Attack chain graph</SectionTitle>
               <p style={styles.graphHint}>
-                Traversed up to 5 hops from <strong>{selectedIP}</strong> through Neo4j.
+                {result.threatOnly ? "Live reputation lookup for" : "Traversed up to 5 hops from"} <strong>{selectedIPValue}</strong>
+                {result.threatOnly ? "." : " through Neo4j."}
                 Click any node to inspect it.
               </p>
               <AttackGraph graphData={result.graph} />
@@ -143,7 +151,7 @@ const InvestigationPage = () => {
       )}
 
       {result && !result.found && (
-        <div style={styles.notFound}>No graph data found for {selectedIP}</div>
+        <div style={styles.notFound}>No graph data found for {selectedIPValue}</div>
       )}
 
       {status === "idle" && !result && (
@@ -214,6 +222,15 @@ const styles = {
     color: "#2C2C2A",
     minWidth: 220,
     cursor: "pointer",
+  },
+  input: {
+    padding: "9px 14px",
+    fontSize: 14,
+    border: "1px solid #B4B2A9",
+    borderRadius: 6,
+    background: "#fff",
+    color: "#2C2C2A",
+    minWidth: 220,
   },
   btn: {
     padding: "9px 20px",

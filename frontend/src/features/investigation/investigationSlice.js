@@ -66,6 +66,8 @@ const investigationSlice = createSlice({
       .addCase(investigateIP.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.result = action.payload;
+        const nodes = action.payload?.graph?.nodes || [];
+        state.selectedNode = nodes.find((node) => node.isRoot) || nodes[0] || null;
       })
       .addCase(investigateIP.rejected, (state, action) => {
         state.status = "failed";

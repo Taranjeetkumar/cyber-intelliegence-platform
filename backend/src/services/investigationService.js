@@ -8,6 +8,18 @@ const { checkIpThreatIntel } = require("./otxService");
 const toNum = (val) =>
   val && typeof val === "object" && "low" in val ? val.low : val;
 
+//changes here 
+const normalizeProperties = (properties = {}) =>
+  Object.fromEntries(
+    Object.entries(properties).map(([key, value]) => {
+      if (Array.isArray(value)) {
+        return [key, value.map((item) => toNum(item))];
+      }
+
+      return [key, toNum(value)];
+    })
+  );
+
 // ── UC1: Traverse attack chain from a given IP ─────────────────────────────
 // Strategy:
 //   1. Neo4j  → variable-length path traversal (up to 5 hops)
@@ -24,7 +36,7 @@ const investigateIP = async (ipValue) => {
     const cypher = `
       MATCH (start:IP {value: $ip})
       OPTIONAL MATCH path = (start)-[
-        :RESOLVES_TO|HOSTS|EXPLOITS|USED_BY|OPERATES|VULNERABLE_TO|HAS_EXPLOIT*1..5
+        :RESOLVES_TO|HOSTS|EXPLOITS|USED_BY|OPERATES|OPERATED_BY|CONTACTED|HAS_PORT|RUNS|VULNERABLE_TO|HAS_EXPLOIT*1..5
       ]->(connected)
       WITH start,
            COLLECT(DISTINCT connected) AS connectedNodes,
@@ -37,8 +49,45 @@ const investigateIP = async (ipValue) => {
 
     const result = await session.run(cypher, { ip: ipValue });
 
+    const mongoRecord = await IOC.findOne(
+      { value: ipValue, type: "ip" },
+      { enrichment: 1, tags: 1, confidence: 1, last_seen: 1, source: 1, analyst_notes: 1 }
+    ).lean();
+
+    const [abuseIpDb, otx] = await Promise.all([
+      checkIpReputation(ipValue),
+      checkIpThreatIntel(ipValue),
+    ]);
+
+    const redis = getRedis();
+    await redis.zIncrBy("hot:iocs", 1, ipValue);
+
     if (result.records.length === 0) {
-      return { found: false, message: `No node found for IP: ${ipValue}` };
+      const liveNode = {
+        id: ipValue,
+        label: ipValue,
+        group: "IP",
+        properties: { value: ipValue, source: "live_threat_intel_lookup" },
+        isRoot: true,
+      };
+
+      return {
+        found: true,
+        threatOnly: true,
+        graph: {
+          nodes: [liveNode],
+          edges: [],
+        },
+        mongoDetail: mongoRecord,
+        abuseIpDb,
+        otx,
+        activeCampaigns: [],
+        stats: {
+          totalNodes: 1,
+          totalEdges: 0,
+          nodeTypes: ["IP"],
+        },
+      };
     }
 
     const record = result.records[0];
@@ -55,7 +104,7 @@ const investigateIP = async (ipValue) => {
       id: startNode.identity.toString(),
       label: startNode.properties.value || "IP",
       group: "IP",
-      properties: startNode.properties,
+      properties: normalizeProperties(startNode.properties),
       isRoot: true,
     });
 
@@ -75,7 +124,7 @@ const investigateIP = async (ipValue) => {
         id,
         label: displayLabel,
         group: label,
-        properties: node.properties,
+        properties: normalizeProperties(node.properties),
       });
     });
 
@@ -89,16 +138,7 @@ const investigateIP = async (ipValue) => {
     });
 
     // ── Step 2: MongoDB enrichment record ───────────────────────────────────
-    const mongoRecord = await IOC.findOne(
-      { value: ipValue, type: "ip" },
-      { enrichment: 1, tags: 1, confidence: 1, last_seen: 1, source: 1, analyst_notes: 1 }
-    ).lean();
-
-    const abuseIpDb = await checkIpReputation(ipValue);
-    const otx = await checkIpThreatIntel(ipValue);
-
     // ── Step 3: Redis — which campaigns from this path are currently active? ─
-    const redis = getRedis();
     const campaignNodes = [...nodesMap.values()].filter(
       (n) => n.group === "Campaign"
     );
@@ -113,8 +153,6 @@ const investigateIP = async (ipValue) => {
     }
 
     // ── Increment hit counter for this IP ───────────────────────────────────
-    await redis.zIncrBy("hot:iocs", 1, ipValue);
-
     // ── Build edge list with labels ─────────────────────────────────────────
     // Re-query for edges with full relationship data
     const edgeCypher = `

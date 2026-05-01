@@ -19,6 +19,7 @@ const checkIpReputation = async (ipAddress) => {
   const url = new URL(ABUSEIPDB_CHECK_URL);
   url.searchParams.set("ipAddress", ipAddress);
   url.searchParams.set("maxAgeInDays", String(parseMaxAge()));
+  console.log(url);
 
   try {
     const response = await fetch(url, {
@@ -27,6 +28,7 @@ const checkIpReputation = async (ipAddress) => {
         Key: apiKey,
       },
     });
+    console.log(response,"jakajskja");
 
     const payload = await response.json().catch(() => ({}));
 
