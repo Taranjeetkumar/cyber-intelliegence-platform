@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchKnownIPs,
+  fetchHoneypotEvents,
   investigateIP,
   setSelectedIP,
   clearResult,
@@ -11,6 +12,9 @@ import {
   selectSelectedNode,
   selectStatus,
   selectError,
+  selectHoneypotEvents,
+  selectLiveStatus,
+  selectLiveError,
 } from "./investigationSlice";
 import AttackGraph from "../../components/graph/AttackGraph";
 import NodeDetail from "../../components/graph/NodeDetail";
@@ -24,6 +28,9 @@ const InvestigationPage = () => {
   const selectedNode = useSelector(selectSelectedNode);
   const status = useSelector(selectStatus);
   const error = useSelector(selectError);
+  const honeypotEvents = useSelector(selectHoneypotEvents);
+  const liveStatus = useSelector(selectLiveStatus);
+  const liveError = useSelector(selectLiveError);
   const selectedIPValue = selectedIP.trim();
   const [themeMode, setThemeMode] = useState(() => {
     const saved = window.localStorage.getItem("soc-theme");
@@ -33,6 +40,12 @@ const InvestigationPage = () => {
 
   useEffect(() => {
     dispatch(fetchKnownIPs());
+    dispatch(fetchHoneypotEvents());
+    const interval = window.setInterval(() => {
+      dispatch(fetchHoneypotEvents());
+    }, 5000);
+
+    return () => window.clearInterval(interval);
   }, [dispatch]);
 
   useEffect(() => {
@@ -118,6 +131,16 @@ const InvestigationPage = () => {
           </div>
         )}
 
+        <LiveCapturePanel
+          events={honeypotEvents}
+          status={liveStatus}
+          error={liveError}
+          onInvestigate={(ip) => {
+            dispatch(setSelectedIP(ip));
+            dispatch(investigateIP(ip));
+          }}
+        />
+
         {result && result.found && (
           <>
             <StatBar stats={result.stats} activeCampaigns={result.activeCampaigns} />
@@ -149,6 +172,7 @@ const InvestigationPage = () => {
                 <NodeDetail
                   node={selectedNode}
                   mongoDetail={result.mongoDetail}
+                  honeypotEvents={result.honeypotEvents}
                   abuseIpDb={result.abuseIpDb}
                   otx={result.otx}
                   activeCampaigns={result.activeCampaigns}
@@ -183,6 +207,60 @@ const Pill = ({ color, label }) => (
   </span>
 );
 
+const LiveCapturePanel = ({ events, status, error, onInvestigate }) => (
+  <section className="live-panel">
+    <div className="live-header">
+      <div>
+        <SectionTitle>Live honeypot capture</SectionTitle>
+        <p className="live-subtitle">SSH :2222 / HTTP :8080 / Telnet :2323</p>
+      </div>
+      <span className={`live-state ${status === "failed" ? "is-error" : ""}`}>
+        {status === "loading" ? "syncing" : status === "failed" ? "offline" : "live"}
+      </span>
+    </div>
+
+    {error && <p className="live-error">{error}</p>}
+
+    <div className="event-list">
+      {events.length === 0 && (
+        <p className="live-empty">
+          No captured events yet. Open the honeypot ports from another terminal to generate traffic.
+        </p>
+      )}
+
+      {events.map((event) => (
+        <button
+          type="button"
+          className="event-row"
+          key={event._id}
+          onClick={() => onInvestigate(event.sourceIp)}
+        >
+          <span className={`severity-dot severity-${event.severity}`} />
+          <span className="event-main">
+            <strong>{event.sourceIp}</strong>
+            <span>
+              {event.service?.toUpperCase()} / {event.eventType}
+            </span>
+          </span>
+          <span className="event-meta">
+            {event.username ? `${event.username}:${event.password || ""}` : event.path || event.payload || ""}
+          </span>
+          <span className="event-time">{formatTime(event.capturedAt)}</span>
+        </button>
+      ))}
+    </div>
+  </section>
+);
+
+const formatTime = (value) => {
+  if (!value) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(value));
+};
+
 const LEGEND_COLORS = {
   IP: "#185FA5",
   Domain: "#3B6D11",
@@ -192,6 +270,8 @@ const LEGEND_COLORS = {
   Campaign: "#534AB7",
   ThreatActor: "#993556",
   Device: "#0F6E56",
+  Credential: "#7C3D13",
+  Pulse: "#6B3FB8",
 };
 
 export default InvestigationPage;

@@ -9,9 +9,11 @@ const GROUP_BADGE_COLORS = {
   Device: "#0F6E56",
   Port: "#5F5E5A",
   Service: "#888780",
+  Credential: "#7C3D13",
+  Pulse: "#6B3FB8",
 };
 
-const NodeDetail = ({ node, mongoDetail, abuseIpDb, otx, activeCampaigns }) => {
+const NodeDetail = ({ node, mongoDetail, honeypotEvents = [], abuseIpDb, otx, activeCampaigns }) => {
   if (!node) {
     return (
       <div className="detail-empty">
@@ -68,9 +70,35 @@ const NodeDetail = ({ node, mongoDetail, abuseIpDb, otx, activeCampaigns }) => {
         </div>
       )}
 
+      {node.group === "IP" && honeypotEvents.length > 0 && (
+        <div className="detail-section">
+          <p className="detail-section-title">Honeypot evidence</p>
+          <DetailRow label="captured events" value={honeypotEvents.length} />
+          {honeypotEvents.slice(0, 5).map((event) => (
+            <div className="evidence-card" key={event._id}>
+              <div className="evidence-topline">
+                <span className={`severity-chip severity-text-${event.severity}`}>
+                  {event.severity}
+                </span>
+                <strong>{event.service?.toUpperCase()}</strong>
+                <span>{formatDateTime(event.capturedAt)}</span>
+              </div>
+              <DetailRow label="event" value={event.eventType || "-"} />
+              {event.path && <DetailRow label="path" value={event.path} />}
+              {event.method && <DetailRow label="method" value={event.method} />}
+              {event.username && <DetailRow label="username" value={event.username} />}
+              {event.password && <DetailRow label="password" value={event.password} />}
+              {event.userAgent && <DetailRow label="user agent" value={event.userAgent} />}
+              {event.payload && <DetailRow label="payload" value={event.payload} />}
+            </div>
+          ))}
+        </div>
+      )}
+
       {node.group === "IP" && (
         <div className="detail-section">
           <p className="detail-section-title">AbuseIPDB reputation</p>
+          {abuseIpDb?.localVerdict && <p className="verdict-note">{abuseIpDb.note}</p>}
           {!abuseIpDb?.configured && (
             <p className="detail-notes">Set ABUSEIPDB_API_KEY in backend/.env to enable live reputation checks.</p>
           )}
@@ -93,8 +121,9 @@ const NodeDetail = ({ node, mongoDetail, abuseIpDb, otx, activeCampaigns }) => {
       {node.group === "IP" && (
         <div className="detail-section">
           <p className="detail-section-title">AlienVault OTX</p>
+          {otx?.localVerdict && <p className="verdict-note">{otx.note}</p>}
           {otx?.errors?.length > 0 && <p className="detail-notes">{otx.errors.join("; ")}</p>}
-          {!otx?.configured && (
+          {!otx?.configured && !otx?.localVerdict && (
             <p className="detail-notes">
               Public OTX indicator data is enabled. Set OTX_API_KEY in backend/.env for authenticated access.
             </p>
@@ -130,5 +159,16 @@ const DetailRow = ({ label, value }) => (
     <span className="detail-value">{value}</span>
   </div>
 );
+
+const formatDateTime = (value) => {
+  if (!value) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(value));
+};
 
 export default NodeDetail;

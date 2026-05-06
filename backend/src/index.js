@@ -7,6 +7,7 @@ const { connectRedis } = require("./config/redis");
 const { connectNeo4j } = require("./config/neo4j");
 const errorHandler = require("./middleware/errorHandler");
 const investigationRoutes = require("./routes/investigation");
+const honeypotRoutes = require("./routes/honeypot");
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.get("/api/health", (req, res) =>
 );
 
 app.use("/api/investigate", investigationRoutes);
+app.use("/api/honeypot", honeypotRoutes);
 
 // Error handler 
 app.use(errorHandler);

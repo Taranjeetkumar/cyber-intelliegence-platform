@@ -15,6 +15,8 @@ const DAY_GROUP_COLORS = {
   Device: { background: "#E1F5EE", border: "#0F6E56", font: "#085041" },
   Port: { background: "#F1EFE8", border: "#5F5E5A", font: "#444441" },
   Service: { background: "#F1EFE8", border: "#888780", font: "#5F5E5A" },
+  Credential: { background: "#FAE9D9", border: "#7C3D13", font: "#5F2D0D" },
+  Pulse: { background: "#F0EAFE", border: "#6B3FB8", font: "#4C2A89" },
 };
 
 const NIGHT_GROUP_COLORS = {
@@ -28,6 +30,8 @@ const NIGHT_GROUP_COLORS = {
   Device: { background: "#12332d", border: "#53d2ba", font: "#c2f4ea" },
   Port: { background: "#202c33", border: "#8fa0ad", font: "#d4e2e8" },
   Service: { background: "#202c33", border: "#6f8994", font: "#d4e2e8" },
+  Credential: { background: "#352417", border: "#df9858", font: "#ffd6b8" },
+  Pulse: { background: "#28213e", border: "#c19cff", font: "#e5d8ff" },
 };
 
 const AttackGraph = ({ graphData, themeMode }) => {

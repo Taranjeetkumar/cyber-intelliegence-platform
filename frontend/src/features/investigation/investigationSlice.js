@@ -25,6 +25,18 @@ export const investigateIP = createAsyncThunk(
   }
 );
 
+export const fetchHoneypotEvents = createAsyncThunk(
+  "investigation/fetchHoneypotEvents",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axios.get("/api/honeypot/events?limit=20");
+      return res.data.events;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.error || "Failed to fetch honeypot events");
+    }
+  }
+);
+
 const investigationSlice = createSlice({
   name: "investigation",
   initialState: {
@@ -32,8 +44,11 @@ const investigationSlice = createSlice({
     selectedIP: "",
     result: null,   
     selectedNode: null,
+    honeypotEvents: [],
+    liveStatus: "idle",
     status: "idle",
     error: null,
+    liveError: null,
   },
   reducers: {
     setSelectedIP: (state, action) => {
@@ -72,6 +87,18 @@ const investigationSlice = createSlice({
       .addCase(investigateIP.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
+      })
+      .addCase(fetchHoneypotEvents.pending, (state) => {
+        state.liveStatus = "loading";
+        state.liveError = null;
+      })
+      .addCase(fetchHoneypotEvents.fulfilled, (state, action) => {
+        state.liveStatus = "succeeded";
+        state.honeypotEvents = action.payload;
+      })
+      .addCase(fetchHoneypotEvents.rejected, (state, action) => {
+        state.liveStatus = "failed";
+        state.liveError = action.payload;
       });
   },
 });
@@ -85,5 +112,8 @@ export const selectResult = (s) => s.investigation.result;
 export const selectSelectedNode = (s) => s.investigation.selectedNode;
 export const selectStatus = (s) => s.investigation.status;
 export const selectError = (s) => s.investigation.error;
+export const selectHoneypotEvents = (s) => s.investigation.honeypotEvents;
+export const selectLiveStatus = (s) => s.investigation.liveStatus;
+export const selectLiveError = (s) => s.investigation.liveError;
 
 export default investigationSlice.reducer;

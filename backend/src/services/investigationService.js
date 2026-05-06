@@ -1,6 +1,7 @@
 const { getNeo4jSession } = require("../config/neo4j");
 const { getRedis } = require("../config/redis");
 const IOC = require("../models/IOC");
+const HoneypotEvent = require("../models/HoneypotEvent");
 const { checkIpReputation } = require("./abuseIpDbService");
 const { checkIpThreatIntel } = require("./otxService");
 
@@ -20,6 +21,66 @@ const normalizeProperties = (properties = {}) =>
     })
   );
 
+const isPrivateOrLocalIp = (ip) =>
+  ip === "127.0.0.1" ||
+  ip === "::1" ||
+  ip.startsWith("10.") ||
+  ip.startsWith("192.168.") ||
+  /^172\.(1[6-9]|2\d|3[0-1])\./.test(ip);
+
+const buildLocalReputation = (ipValue, events = []) => {
+  const severityScore = events.reduce((max, event) => {
+    const score = event.severity === "critical" ? 95 : event.severity === "high" ? 85 : event.severity === "medium" ? 60 : 35;
+    return Math.max(max, score);
+  }, 0);
+  const confidence = Math.min(100, severityScore + Math.max(0, events.length - 1) * 3);
+  const services = [...new Set(events.map((event) => event.service).filter(Boolean))];
+
+  return {
+    abuseIpDb: {
+      configured: true,
+      localVerdict: true,
+      note: "Local honeypot verdict for private Docker IP. Not an AbuseIPDB public lookup.",
+      data: {
+        ipAddress: ipValue,
+        abuseConfidenceScore: confidence,
+        totalReports: events.length,
+        countryCode: "private",
+        isp: "Docker bridge / local lab",
+        usageType: services.length ? `Honeypot target: ${services.join(", ")}` : "Honeypot target",
+        lastReportedAt: events[0]?.capturedAt,
+      },
+    },
+    otx: {
+      configured: true,
+      localVerdict: true,
+      note: "Local honeypot verdict for private Docker IP. Not an AlienVault OTX public lookup.",
+      general: {
+        reputation: confidence >= 80 ? "malicious-lab-signal" : "suspicious-lab-signal",
+        country_code: "private",
+        asn: "Docker bridge / local lab",
+        sections: ["honeypot", ...services],
+        pulse_info: {
+          count: events.length > 0 ? 1 : 0,
+          pulses: events.length > 0
+            ? [
+                {
+                  id: "local-honeypot-capture",
+                  name: `${events.length} local honeypot event${events.length === 1 ? "" : "s"} captured`,
+                  modified: events[0]?.capturedAt,
+                },
+              ]
+            : [],
+        },
+      },
+      reputation: {
+        reputation: confidence,
+      },
+      errors: [],
+    },
+  };
+};
+
 // ── UC1: Traverse attack chain from a given IP ─────────────────────────────
 // Strategy:
 //   1. Neo4j  → variable-length path traversal (up to 5 hops)
@@ -36,7 +97,7 @@ const investigateIP = async (ipValue) => {
     const cypher = `
       MATCH (start:IP {value: $ip})
       OPTIONAL MATCH path = (start)-[
-        :RESOLVES_TO|HOSTS|EXPLOITS|USED_BY|OPERATES|OPERATED_BY|CONTACTED|HAS_PORT|RUNS|VULNERABLE_TO|HAS_EXPLOIT*1..5
+        :RESOLVES_TO|HOSTS|EXPLOITS|USED_BY|OPERATES|OPERATED_BY|CONTACTED|HAS_PORT|RUNS|VULNERABLE_TO|HAS_EXPLOIT|TARGETED|ATTEMPTED_CREDENTIAL|MENTIONED_IN*1..5
       ]->(connected)
       WITH start,
            COLLECT(DISTINCT connected) AS connectedNodes,
@@ -54,10 +115,18 @@ const investigateIP = async (ipValue) => {
       { enrichment: 1, tags: 1, confidence: 1, last_seen: 1, source: 1, analyst_notes: 1 }
     ).lean();
 
-    const [abuseIpDb, otx] = await Promise.all([
-      checkIpReputation(ipValue),
-      checkIpThreatIntel(ipValue),
-    ]);
+    const honeypotEvents = await HoneypotEvent.find({ sourceIp: ipValue })
+      .sort({ capturedAt: -1 })
+      .limit(8)
+      .lean();
+
+    const localReputation = buildLocalReputation(ipValue, honeypotEvents);
+    const [abuseIpDb, otx] = isPrivateOrLocalIp(ipValue)
+      ? [localReputation.abuseIpDb, localReputation.otx]
+      : await Promise.all([
+          checkIpReputation(ipValue),
+          checkIpThreatIntel(ipValue),
+        ]);
 
     const redis = getRedis();
     await redis.zIncrBy("hot:iocs", 1, ipValue);
@@ -79,6 +148,7 @@ const investigateIP = async (ipValue) => {
           edges: [],
         },
         mongoDetail: mongoRecord,
+        honeypotEvents,
         abuseIpDb,
         otx,
         activeCampaigns: [],
@@ -189,6 +259,7 @@ const investigateIP = async (ipValue) => {
         edges,
       },
       mongoDetail: mongoRecord,
+      honeypotEvents,
       abuseIpDb,
       otx,
       activeCampaigns,

@@ -176,6 +176,7 @@ select {
 }
 
 .search-panel,
+.live-panel,
 .detail-shell,
 .empty-state,
 .not-found,
@@ -184,6 +185,134 @@ select {
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
+}
+
+.live-panel {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.live-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.live-subtitle,
+.live-empty,
+.live-error {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.live-state {
+  min-width: 72px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--success) 44%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.live-state.is-error {
+  border-color: color-mix(in srgb, var(--danger) 44%, transparent);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.live-error {
+  color: var(--danger);
+}
+
+.event-list {
+  display: grid;
+  gap: 7px;
+  max-height: 214px;
+  overflow: auto;
+}
+
+.event-row {
+  display: grid;
+  grid-template-columns: 10px minmax(180px, 260px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.event-row:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface-2));
+}
+
+.severity-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.severity-low {
+  background: var(--success);
+}
+
+.severity-medium {
+  background: var(--warn);
+}
+
+.severity-high,
+.severity-critical {
+  background: var(--danger);
+}
+
+.event-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.event-main strong {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 13px;
+}
+
+.event-main span,
+.event-meta,
+.event-time {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.event-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-time {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  white-space: nowrap;
 }
 
 .search-panel {
@@ -431,6 +560,62 @@ select {
   line-height: 1.5;
 }
 
+.verdict-note {
+  margin: 8px 0 10px;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--warn) 34%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface-2));
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.evidence-card {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-2);
+}
+
+.evidence-topline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.evidence-topline strong {
+  color: var(--text);
+}
+
+.severity-chip {
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.severity-text-low {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+}
+
+.severity-text-medium {
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+  color: var(--warn);
+}
+
+.severity-text-high,
+.severity-text-critical {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
 .stat-bar {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -498,9 +683,14 @@ select {
   }
 
   .search-row,
+  .event-row,
   .result-grid,
   .stat-bar {
     grid-template-columns: 1fr;
+  }
+
+  .event-time {
+    justify-self: start;
   }
 
   .graph-frame {
