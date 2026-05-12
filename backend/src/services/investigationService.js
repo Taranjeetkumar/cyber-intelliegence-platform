@@ -6,19 +6,10 @@ const IOC = require("../models/IOC");
 const toNum = (val) =>
   val && typeof val === "object" && "low" in val ? val.low : val;
 
-// ── UC1: Traverse attack chain from a given IP ─────────────────────────────
-// Strategy:
-//   1. Neo4j  → variable-length path traversal (up to 5 hops)
-//   2. MongoDB → full enrichment record for the starting IP
-//   3. Redis  → check if any matched campaign is currently "active"
-//
 const investigateIP = async (ipValue) => {
   const session = getNeo4jSession();
 
   try {
-    // ── Step 1: Neo4j variable-length path traversal ────────────────────────
-    // We follow any of these relationship types up to 5 hops from the IP node.
-    // COLLECT(DISTINCT ...) avoids duplicate nodes/rels in the response.
     const cypher = `
       MATCH (start:IP {value: $ip})
       OPTIONAL MATCH path = (start)-[
@@ -44,7 +35,6 @@ const investigateIP = async (ipValue) => {
     const connectedNodes = record.get("connectedNodes");
     const relPaths = record.get("relPaths").flat();
 
-    // ── Build vis.js-compatible node + edge arrays ──────────────────────────
     const nodesMap = new Map();
     const edgesSet = new Set();
 
@@ -86,13 +76,11 @@ const investigateIP = async (ipValue) => {
       }
     });
 
-    // ── Step 2: MongoDB enrichment record ───────────────────────────────────
     const mongoRecord = await IOC.findOne(
       { value: ipValue, type: "ip" },
       { enrichment: 1, tags: 1, confidence: 1, last_seen: 1, source: 1, analyst_notes: 1 }
     ).lean();
 
-    // ── Step 3: Redis — which campaigns from this path are currently active? ─
     const redis = getRedis();
     const campaignNodes = [...nodesMap.values()].filter(
       (n) => n.group === "Campaign"
@@ -110,8 +98,6 @@ const investigateIP = async (ipValue) => {
     // ── Increment hit counter for this IP ───────────────────────────────────
     await redis.zIncrBy("hot:iocs", 1, ipValue);
 
-    // ── Build edge list with labels ─────────────────────────────────────────
-    // Re-query for edges with full relationship data
     const edgeCypher = `
       MATCH (start:IP {value: $ip})
       OPTIONAL MATCH (a)-[r:RESOLVES_TO|HOSTS|EXPLOITS|USED_BY|OPERATES|VULNERABLE_TO|HAS_EXPLOIT*1..5]->(b)

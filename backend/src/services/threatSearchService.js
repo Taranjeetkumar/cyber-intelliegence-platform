@@ -1,13 +1,6 @@
-/**
- * UC3 — Search Threat Reports
- * Primary DB: MongoDB
- * Uses: compound queries, $in, $gte, aggregation pipeline, $group/$sort
- */
 const IOC = require("../models/IOC");
 const ThreatReport = require("../models/ThreatReport");
 
-// Search IOCs with compound filter
-// Shows off: $in on array field, date range $gte, compound index, projection
 const searchIOCs = async ({ tag, minConfidence = 0, days, type, source, limit = 50 }) => {
     const filter = {};
 
@@ -29,8 +22,6 @@ const searchIOCs = async ({ tag, minConfidence = 0, days, type, source, limit = 
     return results;
 };
 
-// Aggregation: group IOCs by source feed and count
-// Shows off: $match → $group → $sort pipeline
 const iocStatsBySource = async (tag) => {
     const match = tag ? { tags: tag } : {};
 
@@ -70,7 +61,6 @@ const searchThreatReports = async ({ tag, severity, minConfidence = 0, days, lim
         .lean();
 };
 
-// Get all unique tags for filter dropdowns
 const getAllTags = async () => {
     const iocTags = await IOC.distinct("tags");
     const reportTags = await ThreatReport.distinct("tags");

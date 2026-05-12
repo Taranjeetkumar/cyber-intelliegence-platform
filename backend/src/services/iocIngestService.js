@@ -1,8 +1,3 @@
-/**
- * UC5 — Ingest and Enrich IOC Feed
- * Primary DB: MongoDB (upsert) + Neo4j (MERGE)
- * Shows off: $setOnInsert, upsert:true, Neo4j MERGE ON CREATE/ON MATCH
- */
 const { getNeo4jSession } = require("../config/neo4j");
 const { getRedis } = require("../config/redis");
 const IOC = require("../models/IOC");
@@ -23,9 +18,6 @@ const ingestSingleIOC = async (ioc) => {
   const enrichment = mockEnrich(ioc);
   const now = new Date();
 
-  // ── MongoDB upsert ────────────────────────────────────────────────────────
-  // $setOnInsert only fires when the document is NEW (not on updates)
-  // This preserves first_seen timestamp across repeated ingestions
   const mongoResult = await IOC.findOneAndUpdate(
     { value, type },
     {
@@ -38,7 +30,6 @@ const ingestSingleIOC = async (ioc) => {
   const isNew = !mongoResult.first_seen || 
     Math.abs(mongoResult.first_seen - now) < 1000;
 
-  // ── Neo4j MERGE ───────────────────────────────────────────────────────────
   const session = getNeo4jSession();
   try {
     let cypher;

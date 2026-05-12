@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 // ── Slice ─────────────────────────────────────────────────────────────────────
 export const fetchAtRiskDevices = createAsyncThunk("deviceRisk/fetch",
-    async (minCvss = 7.0) => (await axios.get(⁠ /api/devices/at-risk?minCvss=${minCvss} ⁠)).data
+    async (minCvss = 7.0) => (await axios.get(`/api/devices/at-risk?minCvss=${minCvss}`)).data
 );
 
 const slice = createSlice({
@@ -90,7 +90,7 @@ export function DeviceRiskPage() {
                             <div style={s.detailMeta}>{selected.ip} · {selected.os}</div>
                             <div style={s.infoBox}>
                                 <div style={s.infoRow}><span>Final risk</span><strong style={{ color: RISK_COLOR(selected.final_risk) }}>{selected.final_risk}</strong></div>
-                                <div style={s.infoRow}><span>Redis cached</span><span>{selected.redis_risk != null ? ⁠ ${selected.redis_risk} (TTL key) ⁠ : "expired / not set"}</span></div>
+                                <div style={s.infoRow}><span>Redis cached</span><span>{selected.redis_risk != null ? `${selected.redis_risk} (TTL key)` : "expired / not set"}</span></div>
                                 <div style={s.infoRow}><span>Vulnerabilities</span><span>{selected.vuln_count}</span></div>
                             </div>
                             <div style={{ fontSize: 11, fontWeight: 700, color: "#5F5E5A", textTransform: "uppercase", letterSpacing: ".06em", margin: "12px 0 6px" }}>Neo4j query used</div>

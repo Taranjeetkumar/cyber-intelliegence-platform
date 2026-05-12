@@ -14,6 +14,7 @@ const threatSearchRoutes = require("./routes/threatSearch");
 const { deviceRiskRouter, } = require("./routes/deviceRisk");
 const { iocIngestRouter } = require("./routes/iocIngest");
 const { campaignAlertRouter } = require("./routes/campaignAlert");
+const nmapScanRoutes = require("./routes/nmapScan");
 
 const app = express();
 const server = http.createServer(app);
@@ -33,6 +34,7 @@ app.use("/api/search", threatSearchRoutes);
 app.use("/api/devices", deviceRiskRouter);
 app.use("/api/ingest", iocIngestRouter);
 app.use("/api/campaigns", campaignAlertRouter);
+app.use("/api/scan", nmapScanRoutes);
 
 // Error handler 
 app.use(errorHandler);

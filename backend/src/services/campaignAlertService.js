@@ -1,8 +1,3 @@
-/**
- * UC6 — Detect Campaign Pattern Alert
- * Primary DB: Redis (sorted set read) + Neo4j (campaign membership)
- * Shows off: ZREVRANGE, Neo4j IN predicate + COUNT(DISTINCT), Redis SADD/SISMEMBER
- */
 const { getNeo4jSession } = require("../config/neo4j");
 const { getRedis } = require("../config/redis");
 const Alert = require("../models/Alert");
@@ -14,13 +9,11 @@ const toNum = (val) =>
 const runCorrelation = async (topN = 20, threshold = 2) => {
   const redis = getRedis();
 
-  // ── Step 1: Redis ZREVRANGE — get top-N most-hit IOCs ────────────────────
   const topIocs = await redis.zRangeWithScores("hot:iocs", 0, topN - 1, { REV: true });
   if (!topIocs.length) return { alerts: [], matched_campaigns: [] };
 
   const ipList = topIocs.map((i) => i.value);
 
-  // ── Step 2: Neo4j — which campaigns have >= threshold of these IPs? ──────
   // Uses IN predicate + COUNT(DISTINCT) — key non-trivial Neo4j feature
   const session = getNeo4jSession();
   let campaignMatches = [];
