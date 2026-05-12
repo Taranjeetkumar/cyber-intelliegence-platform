@@ -1,6 +1,8 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
+// ── Async thunks ─────────────────────────────────────────────────────────────
+
 export const fetchKnownIPs = createAsyncThunk(
   "investigation/fetchKnownIPs",
   async (_, { rejectWithValue }) => {
@@ -25,14 +27,16 @@ export const investigateIP = createAsyncThunk(
   }
 );
 
+// ── Slice ─────────────────────────────────────────────────────────────────────
+
 const investigationSlice = createSlice({
   name: "investigation",
   initialState: {
     knownIPs: [],
     selectedIP: "",
-    result: null,   
-    selectedNode: null,
-    status: "idle",
+    result: null,       // { found, graph, mongoDetail, activeCampaigns, stats }
+    selectedNode: null, // node the user clicked in the graph
+    status: "idle",     // idle | loading | succeeded | failed
     error: null,
   },
   reducers: {

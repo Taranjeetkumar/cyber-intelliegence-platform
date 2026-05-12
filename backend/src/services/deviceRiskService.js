@@ -1,8 +1,3 @@
-/**
- * UC4 — Identify At-Risk Devices
- * Primary DB: Neo4j + MongoDB + Redis (all three together)
- * Shows off: multi-hop Cypher query, cross-DB lookup, Redis TTL cache
- */
 const { getNeo4jSession } = require("../config/neo4j");
 const { getRedis } = require("../config/redis");
 const IOC = require("../models/IOC");
@@ -10,14 +5,12 @@ const IOC = require("../models/IOC");
 const toNum = (val) =>
   val && typeof val === "object" && "low" in val ? val.low : Number(val);
 
-// Find all devices with a complete exploit chain: Device→Port→Service→CVE→Exploit
 // Then enrich each with Redis risk score and MongoDB scan details
 const getAtRiskDevices = async (minCvss = 7.0) => {
   const session = getNeo4jSession();
   const redis = getRedis();
 
   try {
-    // ── Step 1: Neo4j — find devices with full exploit chain ──────────────
     const cypher = `
       MATCH (d:Device)-[:HAS_PORT]->(p:Port)
             -[:RUNS]->(s:Service)
@@ -56,7 +49,6 @@ const getAtRiskDevices = async (minCvss = 7.0) => {
 
     if (!neoRows.length) return [];
 
-    // ── Step 2: Redis — get cached risk scores (fast, no DB hit) ─────────
     const uniqueHostnames = [...new Set(neoRows.map((r) => r.hostname))];
 
     const riskScores = {};
@@ -67,7 +59,6 @@ const getAtRiskDevices = async (minCvss = 7.0) => {
       })
     );
 
-    // ── Step 3: Group by device and attach risk scores ────────────────────
     const deviceMap = {};
     neoRows.forEach((row) => {
       if (!deviceMap[row.hostname]) {
@@ -91,7 +82,6 @@ const getAtRiskDevices = async (minCvss = 7.0) => {
       });
     });
 
-    // Compute final risk: max CVSS * 10 if Redis score missing
     const devices = Object.values(deviceMap).map((d) => {
       const maxCvss = Math.max(...d.vulnerabilities.map((v) => v.cvss_score));
       return {

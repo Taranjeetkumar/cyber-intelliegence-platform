@@ -11,7 +11,7 @@ import {
   selectSelectedNode,
   selectStatus,
   selectError,
-} from "./investigationSlice";
+} from "../../features/investigation/investigationSlice";
 import AttackGraph from "../../components/graph/AttackGraph";
 import NodeDetail from "../../components/graph/NodeDetail";
 import StatBar from "../../components/ui/StatBar";
