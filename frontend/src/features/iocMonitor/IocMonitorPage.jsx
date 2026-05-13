@@ -34,8 +34,7 @@ export default function IocMonitorPage() {
         <div style={s.page}>
             <div style={s.header}>
                 <div>
-                    <h2 style={s.title}>UC2 — Live IOC Monitor</h2>
-                    <p style={s.sub}>Redis sorted set · TTL risk scores · pub/sub alerts</p>
+                    <h2 style={s.title}>Live IOC Monitor</h2>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     {updatedAt && <span style={s.ts}>Updated: {new Date(updatedAt).toLocaleTimeString()}</span>}
@@ -96,22 +95,6 @@ export default function IocMonitorPage() {
                         ))}
                     </div>
 
-                    {/* Redis key explanation */}
-                    <div style={{ ...s.card, background: "#1E1E2E" }}>
-                        <div style={{ ...s.cardTitle, color: "#CDD6F4" }}>Redis keys used</div>
-                        {[
-                            ["hot:iocs", "Sorted Set", "leaderboard by hit count"],
-                            ["risk:host:*", "String+TTL", "device risk score, 1h expiry"],
-                            ["campaign:active", "Set", "currently active campaign IDs"],
-                            ["alert:stream", "Pub/Sub", "live alert push channel"],
-                        ].map(([k, t, d]) => (
-                            <div key={k} style={{ marginBottom: 6 }}>
-                                <span style={{ fontFamily: "monospace", fontSize: 11, color: "#89B4FA" }}>{k}</span>
-                                <span style={{ fontSize: 10, color: "#585B70", marginLeft: 6 }}>[{t}]</span>
-                                <span style={{ fontSize: 11, color: "#CDD6F4", marginLeft: 6 }}>{d}</span>
-                            </div>
-                        ))}
-                    </div>
                 </div>
             </div>
         </div>

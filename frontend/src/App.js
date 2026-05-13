@@ -16,11 +16,11 @@ const NAV = [
   { id: "4", label: "Device Risk", icon: "⚠️", db: "", color: "#854F0B" },
   { id: "5", label: "IOC Ingest", icon: "📥", db: "", color: "#534AB7" },
   { id: "6", label: "Campaign Alert", icon: "🚨", db: "", color: "#A32D2D" },
-  { id: "7", label: "Nmap Scanner", icon: "🔭", db: "local", color: "#0F6E56" },
+  { id: "7", label: "Nmap Scanner", icon: "🔭", db: "", color: "#0F6E56" },
 ];
 
 function App() {
-  const [active, setActive] = useState("uc1");
+  const [active, setActive] = useState("1");
 
   const page = {
     1: <InvestigationPage />,

@@ -38,8 +38,8 @@ export function DeviceRiskPage() {
     return (
         <div style={s.page}>
             <div style={s.header}>
-                <div><h2 style={s.title}>UC4 — At-Risk Devices</h2>
-                    <p style={s.sub}>Neo4j 4-hop traversal · Redis TTL risk cache · MongoDB scan details</p></div>
+                <div><h2 style={s.title}>At-Risk Devices</h2>
+                    </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                     <div><label style={s.label}>Min CVSS</label>
                         <input style={s.input} type="number" min="0" max="10" step="0.5" value={minCvss}
@@ -93,14 +93,14 @@ export function DeviceRiskPage() {
                                 <div style={s.infoRow}><span>Redis cached</span><span>{selected.redis_risk != null ? `${selected.redis_risk} (TTL key)` : "expired / not set"}</span></div>
                                 <div style={s.infoRow}><span>Vulnerabilities</span><span>{selected.vuln_count}</span></div>
                             </div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#5F5E5A", textTransform: "uppercase", letterSpacing: ".06em", margin: "12px 0 6px" }}>Neo4j query used</div>
+                            {/* <div style={{ fontSize: 11, fontWeight: 700, color: "#5F5E5A", textTransform: "uppercase", letterSpacing: ".06em", margin: "12px 0 6px" }}>Neo4j query used</div>
                             <pre style={s.cypher}>{`MATCH (d:Device)-[:HAS_PORT]->(p:Port)
   -[:RUNS]->(s:Service)
   -[:VULNERABLE_TO]->(c:CVE)
   -[:HAS_EXPLOIT]->(e:Exploit)
 WHERE c.cvss_score >= ${minCvss}
 RETURN d.hostname, c.cve_id,
-  c.cvss_score, e.module_name`}</pre>
+  c.cvss_score, e.module_name`}</pre> */}
                         </>
                     )}
                 </div>
