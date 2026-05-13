@@ -60,8 +60,8 @@ export function IocIngestPage() {
   return (
     <div style={s.page}>
       <div style={s.header}>
-        <div><h2 style={s.title}>UC5 — Ingest &amp; Enrich IOC Feed</h2>
-          <p style={s.sub}>MongoDB $setOnInsert upsert · Neo4j MERGE ON CREATE/ON MATCH</p></div>
+        <div><h2 style={s.title}>Ingest &amp; Enrich IOC Feed</h2>
+          </div>
       </div>
 
       <div style={s.grid}>
@@ -127,38 +127,6 @@ export function IocIngestPage() {
             </div>}
           </div>
 
-          {/* How it works */}
-          <div style={{...s.card,background:"#1E1E2E"}}>
-            <div style={{...s.cardTitle,color:"#CDD6F4"}}>What happens per IOC</div>
-            {[
-              ["1","Check MongoDB","findOne by value+type"],
-              ["2","If new → Enrich","WHOIS + VirusTotal API"],
-              ["3","MongoDB upsert","$setOnInsert preserves first_seen"],
-              ["4","Neo4j MERGE","creates node only if not exists"],
-              ["5","Redis INCR","stats:ingested:{type}++"],
-            ].map(([n,t,d])=>(
-              <div key={n} style={{display:"flex",gap:8,marginBottom:8}}>
-                <span style={{width:18,height:18,borderRadius:"50%",background:"#313244",color:"#CDD6F4",fontSize:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{n}</span>
-                <div><div style={{fontSize:12,fontWeight:600,color:"#CDD6F4"}}>{t}</div>
-                  <div style={{fontSize:10,color:"#6C7086"}}>{d}</div></div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{...s.card,background:"#1E1E2E"}}>
-            <div style={{...s.cardTitle,color:"#CDD6F4"}}>Key MongoDB operator</div>
-            <pre style={{fontSize:10,color:"#A6E3A1",whiteSpace:"pre-wrap",lineHeight:1.6}}>{`updateOne(
-  { value, type },
-  {
-    $set: { last_seen, tags },
-    $setOnInsert: {
-      first_seen: now
-      // only on NEW docs
-    }
-  },
-  { upsert: true }
-)`}</pre>
-          </div>
         </div>
       </div>
     </div>

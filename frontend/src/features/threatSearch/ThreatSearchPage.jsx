@@ -38,8 +38,7 @@ export default function ThreatSearchPage() {
         <div style={s.page}>
             <div style={s.header}>
                 <div>
-                    <h2 style={s.title}>UC3 — Search Threat Reports</h2>
-                    <p style={s.sub}>MongoDB compound queries · aggregation pipeline · $in · $gte</p>
+                    <h2 style={s.title}>Search Threat Reports</h2>
                 </div>
             </div>
 
@@ -130,12 +129,12 @@ export default function ThreatSearchPage() {
                     </div>
 
                     {/* MongoDB query display */}
-                    <div style={{ ...s.card, background: "#1E1E2E" }}>
+                    {/* <div style={{ ...s.card, background: "#1E1E2E" }}>
                         <div style={{ ...s.cardTitle, color: "#CDD6F4" }}>MongoDB query</div>
                         <pre style={{ fontSize: 10, color: "#A6E3A1", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{`db.ioc_records.find({
   ${filters.tag ? `tags: { $in: ["${filters.tag}"] },\n  ` : ""}${filters.minConfidence ? `confidence: { $gte: ${filters.minConfidence} },\n  ` : ""}${filters.days ? `last_seen: { $gte: new Date()\n    // -${filters.days} days\n  }` : "..."}
 }).sort({ confidence: -1 })`}</pre>
-                    </div>
+                    </div> */}
                 </div>
             </div>
         </div>

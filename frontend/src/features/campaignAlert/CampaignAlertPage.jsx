@@ -69,8 +69,8 @@ export function CampaignAlertPage() {
     return (
         <div style={s.page}>
             <div style={s.header}>
-                <div><h2 style={s.title}>UC6 — Campaign Pattern Detection</h2>
-                    <p style={s.sub}>Redis ZREVRANGE + Neo4j COUNT(DISTINCT) + pub/sub SSE alerts</p></div>
+                <div><h2 style={s.title}>Campaign Pattern Detection</h2>
+                    </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{
                         ...s.ssePill, background: sseStatus === "connected" ? "#EAF3DE" : "#FAEEDA",
@@ -144,7 +144,7 @@ export function CampaignAlertPage() {
                     </div>
 
                     {/* Cypher used */}
-                    <div style={{ ...s.card, background: "#1E1E2E" }}>
+                    {/* <div style={{ ...s.card, background: "#1E1E2E" }}>
                         <div style={{ ...s.cardTitle, color: "#CDD6F4" }}>Neo4j query used</div>
                         <pre style={s.cypher}>{`MATCH (i:IP)
   -[:RESOLVES_TO|HOSTS*1..3]->
@@ -155,7 +155,7 @@ WITH c,
 WHERE matchCount >= ${threshold}
 MATCH (c)-[:OPERATED_BY]->(a:ThreatActor)
 RETURN c.name, a.name, matchCount`}</pre>
-                    </div>
+                    </div> */}
 
                     {/* Persistent alerts */}
                     <div style={s.card}>

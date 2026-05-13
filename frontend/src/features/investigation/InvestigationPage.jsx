@@ -88,10 +88,7 @@ const InvestigationPage = () => {
           </div>
         </div>
 
-        {/* UC label */}
-        <div style={styles.ucBadge}>
-          UC1 — Investigate attack chain · Neo4j graph traversal
-        </div>
+        
       </div>
 
       {/* ── Error ──────────────────────────────────────────── */}
