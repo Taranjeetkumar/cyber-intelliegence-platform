@@ -1,7 +1,7 @@
 {
   "name": "cti-platform-backend",
   "version": "1.0.0",
-  "description": "Cyber Threat Intelligence Platform — Express API",
+  "description": "Cyber Threat Intelligence Platform",
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",

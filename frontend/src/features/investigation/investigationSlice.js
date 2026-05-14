@@ -42,11 +42,11 @@ const investigationSlice = createSlice({
   initialState: {
     knownIPs: [],
     selectedIP: "",
-    result: null,   
+    result: null,
     selectedNode: null,
     honeypotEvents: [],
-    liveStatus: "idle",
     status: "idle",
+    liveStatus: "idle",
     error: null,
     liveError: null,
   },
@@ -65,13 +65,10 @@ const investigationSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // fetchKnownIPs
     builder
       .addCase(fetchKnownIPs.fulfilled, (state, action) => {
         state.knownIPs = action.payload;
       })
-
-    // investigateIP
       .addCase(investigateIP.pending, (state) => {
         state.status = "loading";
         state.error = null;
@@ -105,7 +102,6 @@ const investigationSlice = createSlice({
 
 export const { setSelectedIP, setSelectedNode, clearResult } = investigationSlice.actions;
 
-// ── Selectors ─────────────────────────────────────────────────────────────────
 export const selectKnownIPs = (s) => s.investigation.knownIPs;
 export const selectSelectedIP = (s) => s.investigation.selectedIP;
 export const selectResult = (s) => s.investigation.result;
