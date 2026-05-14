@@ -1,5 +1,29 @@
 # Cyber Threat Intelligence Platform
 
+## Full Docker SOC + honeypot demo
+
+The Compose stack starts the dashboard, backend, MongoDB, Neo4j, Redis, and three local honeypods:
+
+```powershell
+docker compose up --build
+```
+
+Open the dashboard:
+
+```txt
+http://localhost
+```
+
+Generate live captures:
+
+```powershell
+ssh fakeuser@localhost -p 2222
+curl http://localhost:8080/admin
+telnet localhost 2323
+```
+
+Captured events are sent to the backend at `/api/honeypot/events`, stored in MongoDB, linked into Neo4j as relationships such as `IP -> TARGETED -> Service`, and counted in Redis under `hot:iocs` and `live:honeypot:events`.
+
 ## Prerequisites (install these first)
 | Tool | Download |
 |------|---------|

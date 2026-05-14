@@ -10,10 +10,8 @@ const iocSchema = new mongoose.Schema(
     last_seen: { type: Date, default: Date.now },
     source: { type: String, default: "manual" },
     enrichment: {
-      whois_country: String,
-      asn: String,
-      virustotal_score: String,
-      isp: String,
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
     analyst_notes: String,
   },

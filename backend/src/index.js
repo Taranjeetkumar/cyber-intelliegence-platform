@@ -9,6 +9,7 @@ const { connectNeo4j } = require("./config/neo4j");
 const errorHandler = require("./middleware/errorHandler");
 
 const investigationRoutes = require("./routes/investigation");
+const honeypotRoutes = require("./routes/honeypot");
 const iocMonitorRoutes = require("./routes/iocMonitor");
 const threatSearchRoutes = require("./routes/threatSearch");
 const { deviceRiskRouter, } = require("./routes/deviceRisk");
@@ -29,6 +30,7 @@ app.get("/api/health", (req, res) =>
 );
 
 app.use("/api/investigate", investigationRoutes);
+app.use("/api/honeypot", honeypotRoutes);
 app.use("/api/monitor", iocMonitorRoutes);
 app.use("/api/search", threatSearchRoutes);
 app.use("/api/devices", deviceRiskRouter);

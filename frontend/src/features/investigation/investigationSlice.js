@@ -1,8 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
-// ── Async thunks ─────────────────────────────────────────────────────────────
-
 export const fetchKnownIPs = createAsyncThunk(
   "investigation/fetchKnownIPs",
   async (_, { rejectWithValue }) => {
@@ -27,17 +25,30 @@ export const investigateIP = createAsyncThunk(
   }
 );
 
-// ── Slice ─────────────────────────────────────────────────────────────────────
+export const fetchHoneypotEvents = createAsyncThunk(
+  "investigation/fetchHoneypotEvents",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axios.get("/api/honeypot/events?limit=20");
+      return res.data.events;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.error || "Failed to fetch honeypot events");
+    }
+  }
+);
 
 const investigationSlice = createSlice({
   name: "investigation",
   initialState: {
     knownIPs: [],
     selectedIP: "",
-    result: null,       // { found, graph, mongoDetail, activeCampaigns, stats }
-    selectedNode: null, // node the user clicked in the graph
-    status: "idle",     // idle | loading | succeeded | failed
+    result: null,
+    selectedNode: null,
+    honeypotEvents: [],
+    status: "idle",
+    liveStatus: "idle",
     error: null,
+    liveError: null,
   },
   reducers: {
     setSelectedIP: (state, action) => {
@@ -54,13 +65,10 @@ const investigationSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // fetchKnownIPs
     builder
       .addCase(fetchKnownIPs.fulfilled, (state, action) => {
         state.knownIPs = action.payload;
       })
-
-    // investigateIP
       .addCase(investigateIP.pending, (state) => {
         state.status = "loading";
         state.error = null;
@@ -70,22 +78,38 @@ const investigationSlice = createSlice({
       .addCase(investigateIP.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.result = action.payload;
+        const nodes = action.payload?.graph?.nodes || [];
+        state.selectedNode = nodes.find((node) => node.isRoot) || nodes[0] || null;
       })
       .addCase(investigateIP.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
+      })
+      .addCase(fetchHoneypotEvents.pending, (state) => {
+        state.liveStatus = "loading";
+        state.liveError = null;
+      })
+      .addCase(fetchHoneypotEvents.fulfilled, (state, action) => {
+        state.liveStatus = "succeeded";
+        state.honeypotEvents = action.payload;
+      })
+      .addCase(fetchHoneypotEvents.rejected, (state, action) => {
+        state.liveStatus = "failed";
+        state.liveError = action.payload;
       });
   },
 });
 
 export const { setSelectedIP, setSelectedNode, clearResult } = investigationSlice.actions;
 
-// ── Selectors ─────────────────────────────────────────────────────────────────
 export const selectKnownIPs = (s) => s.investigation.knownIPs;
 export const selectSelectedIP = (s) => s.investigation.selectedIP;
 export const selectResult = (s) => s.investigation.result;
 export const selectSelectedNode = (s) => s.investigation.selectedNode;
 export const selectStatus = (s) => s.investigation.status;
 export const selectError = (s) => s.investigation.error;
+export const selectHoneypotEvents = (s) => s.investigation.honeypotEvents;
+export const selectLiveStatus = (s) => s.investigation.liveStatus;
+export const selectLiveError = (s) => s.investigation.liveError;
 
 export default investigationSlice.reducer;
