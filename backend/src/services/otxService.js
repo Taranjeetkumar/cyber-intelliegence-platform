@@ -1,4 +1,5 @@
 const OTX_BASE_URL = "https://otx.alienvault.com/api/v1";
+const REQUEST_TIMEOUT_MS = Number(process.env.THREAT_INTEL_TIMEOUT_MS || 5000);
 
 const buildHeaders = () => {
   const headers = { Accept: "application/json" };
@@ -13,18 +14,30 @@ const buildHeaders = () => {
 
 const fetchSection = async (ipAddress, section) => {
   const url = `${OTX_BASE_URL}/indicators/IPv4/${encodeURIComponent(ipAddress)}/${section}`;
-  const response = await fetch(url, { headers: buildHeaders() });
-  const payload = await response.json().catch(() => ({}));
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  if (!response.ok) {
-    throw new Error(
-      payload?.detail ||
-        payload?.error ||
-        `OTX ${section} request failed with status ${response.status}`
-    );
+  try {
+    const response = await fetch(url, { headers: buildHeaders(), signal: controller.signal });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        payload?.detail ||
+          payload?.error ||
+          `OTX ${section} request failed with status ${response.status}`
+      );
+    }
+
+    return payload;
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error(`OTX ${section} request timed out`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return payload;
 };
 
 const checkIpThreatIntel = async (ipAddress) => {

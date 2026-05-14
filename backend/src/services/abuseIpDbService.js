@@ -1,4 +1,5 @@
 const ABUSEIPDB_CHECK_URL = "https://api.abuseipdb.com/api/v2/check";
+const REQUEST_TIMEOUT_MS = Number(process.env.THREAT_INTEL_TIMEOUT_MS || 5000);
 
 const parseMaxAge = () => {
   const value = Number.parseInt(process.env.ABUSEIPDB_MAX_AGE_DAYS || "90", 10);
@@ -19,7 +20,8 @@ const checkIpReputation = async (ipAddress) => {
   const url = new URL(ABUSEIPDB_CHECK_URL);
   url.searchParams.set("ipAddress", ipAddress);
   url.searchParams.set("maxAgeInDays", String(parseMaxAge()));
-  console.log(url);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
     const response = await fetch(url, {
@@ -27,8 +29,8 @@ const checkIpReputation = async (ipAddress) => {
         Accept: "application/json",
         Key: apiKey,
       },
+      signal: controller.signal,
     });
-    console.log(response,"jakajskja");
 
     const payload = await response.json().catch(() => ({}));
 
@@ -49,8 +51,10 @@ const checkIpReputation = async (ipAddress) => {
   } catch (err) {
     return {
       configured: true,
-      error: err.message,
+      error: err.name === "AbortError" ? "AbuseIPDB request timed out" : err.message,
     };
+  } finally {
+    clearTimeout(timeout);
   }
 };
 

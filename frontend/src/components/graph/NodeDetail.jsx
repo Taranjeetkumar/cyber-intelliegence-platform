@@ -11,6 +11,11 @@ const GROUP_BADGE_COLORS = {
   Service: "#888780",
   Credential: "#7C3D13",
   Pulse: "#6B3FB8",
+  Reputation: "#0284C7",
+  Geo: "#65A30D",
+  ASN: "#4F46E5",
+  IntelSource: "#C026D3",
+  Observation: "#64748B",
 };
 
 const NodeDetail = ({ node, mongoDetail, honeypotEvents = [], abuseIpDb, otx, activeCampaigns }) => {
@@ -100,7 +105,9 @@ const NodeDetail = ({ node, mongoDetail, honeypotEvents = [], abuseIpDb, otx, ac
           <p className="detail-section-title">AbuseIPDB reputation</p>
           {abuseIpDb?.localVerdict && <p className="verdict-note">{abuseIpDb.note}</p>}
           {!abuseIpDb?.configured && (
-            <p className="detail-notes">Set ABUSEIPDB_API_KEY in backend/.env to enable live reputation checks.</p>
+            <p className="detail-notes">
+              Set ABUSEIPDB_API_KEY in the project .env next to docker-compose.yml, then restart backend.
+            </p>
           )}
           {abuseIpDb?.error && abuseIpDb.configured && (
             <p className="detail-notes">{abuseIpDb.error}</p>
@@ -125,7 +132,7 @@ const NodeDetail = ({ node, mongoDetail, honeypotEvents = [], abuseIpDb, otx, ac
           {otx?.errors?.length > 0 && <p className="detail-notes">{otx.errors.join("; ")}</p>}
           {!otx?.configured && !otx?.localVerdict && (
             <p className="detail-notes">
-              Public OTX indicator data is enabled. Set OTX_API_KEY in backend/.env for authenticated access.
+              Public OTX indicator data is enabled. Set OTX_API_KEY in the project .env for authenticated access.
             </p>
           )}
           {otxGeneral && (

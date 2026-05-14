@@ -150,9 +150,13 @@ const InvestigationPage = () => {
                 <div className="graph-heading">
                   <SectionTitle>Attack chain graph</SectionTitle>
                   <p className="graph-hint">
-                    {result.threatOnly ? "Live reputation lookup for" : "Traversed up to 5 hops from"}{" "}
+                    {result.evidenceGraph
+                      ? "Evidence graph for"
+                      : result.threatOnly
+                        ? "Live reputation lookup for"
+                        : "Traversed up to 5 hops from"}{" "}
                     <strong>{selectedIPValue}</strong>
-                    {result.threatOnly ? "." : " through Neo4j."} Click any node to inspect it.
+                    {result.evidenceGraph || result.threatOnly ? "." : " through Neo4j."} Click any node to inspect it.
                   </p>
                 </div>
                 <AttackGraph graphData={result.graph} themeMode={themeMode} />
@@ -262,16 +266,23 @@ const formatTime = (value) => {
 };
 
 const LEGEND_COLORS = {
-  IP: "#185FA5",
-  Domain: "#3B6D11",
-  Malware: "#993C1D",
-  CVE: "#854F0B",
-  Exploit: "#A32D2D",
-  Campaign: "#534AB7",
-  ThreatActor: "#993556",
-  Device: "#0F6E56",
-  Credential: "#7C3D13",
-  Pulse: "#6B3FB8",
+  IP: "#2563EB",
+  Domain: "#16A34A",
+  Malware: "#E11D48",
+  CVE: "#D97706",
+  Exploit: "#DC2626",
+  Campaign: "#7C3AED",
+  ThreatActor: "#DB2777",
+  Device: "#0D9488",
+  Port: "#475569",
+  Service: "#EA580C",
+  Credential: "#B45309",
+  Pulse: "#9333EA",
+  Reputation: "#0284C7",
+  Geo: "#65A30D",
+  ASN: "#4F46E5",
+  IntelSource: "#C026D3",
+  Observation: "#64748B",
 };
 
 export default InvestigationPage;

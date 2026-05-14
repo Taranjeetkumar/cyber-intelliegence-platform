@@ -1,0 +1,358 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1280" viewBox="0 0 1920 1280" role="img" aria-labelledby="title desc">
+  <title id="title">Cyber Intelligence Platform Schema Relationships</title>
+  <desc id="desc">Clean relationship diagram showing MongoDB documents, Neo4j graph entities, Redis state, API flows, and cross-store mappings.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f6f8fc; }
+      .title { font: 800 32px Arial, sans-serif; fill: #172033; }
+      .subtitle { font: 15px Arial, sans-serif; fill: #64748b; }
+      .zone { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; }
+      .zone-title { font: 800 17px Arial, sans-serif; letter-spacing: .08em; fill: #334155; }
+      .card { fill: #ffffff; stroke-width: 2; }
+      .mongo { stroke: #2563eb; }
+      .neo { stroke: #7c3aed; }
+      .redis { stroke: #16a34a; }
+      .api { stroke: #ea580c; }
+      .head-mongo { fill: #dbeafe; }
+      .head-neo { fill: #ede9fe; }
+      .head-redis { fill: #dcfce7; }
+      .head-api { fill: #ffedd5; }
+      .card-title { font: 800 16px Arial, sans-serif; fill: #111827; }
+      .entity-title { font: 800 15px Arial, sans-serif; fill: #111827; }
+      .field { font: 12px Consolas, Monaco, monospace; fill: #263238; }
+      .field-muted { font: 12px Consolas, Monaco, monospace; fill: #64748b; }
+      .rel { stroke: #475569; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+      .rel-soft { stroke: #94a3b8; stroke-width: 2; fill: none; stroke-dasharray: 8 7; marker-end: url(#softArrow); }
+      .rel-data { stroke: #16a34a; stroke-width: 2.5; fill: none; marker-end: url(#dataArrow); }
+      .rel-api { stroke: #ea580c; stroke-width: 2.5; fill: none; marker-end: url(#apiArrow); }
+      .rel-neo { stroke: #7c3aed; stroke-width: 2.5; fill: none; marker-end: url(#neoArrow); }
+      .label-bg { fill: #f6f8fc; stroke: #e2e8f0; stroke-width: 1; }
+      .rel-label { font: 700 11px Arial, sans-serif; fill: #334155; }
+      .legend { font: 13px Arial, sans-serif; fill: #334155; }
+    </style>
+    <marker id="arrow" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L11,4 L0,8 Z" fill="#475569"/>
+    </marker>
+    <marker id="softArrow" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L11,4 L0,8 Z" fill="#94a3b8"/>
+    </marker>
+    <marker id="dataArrow" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L11,4 L0,8 Z" fill="#16a34a"/>
+    </marker>
+    <marker id="apiArrow" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L11,4 L0,8 Z" fill="#ea580c"/>
+    </marker>
+    <marker id="neoArrow" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L11,4 L0,8 Z" fill="#7c3aed"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1920" height="1280"/>
+  <text class="title" x="60" y="56">Cyber Intelligence Platform - Schema Relationship Export</text>
+  <text class="subtitle" x="60" y="84">Relationship-focused schema export. Connectors are routed around cards to avoid overlap.</text>
+
+  <rect class="zone" x="48" y="126" width="680" height="720" rx="18"/>
+  <text class="zone-title" x="78" y="162">MONGODB DOCUMENT STORE</text>
+
+  <rect class="zone" x="790" y="126" width="1082" height="720" rx="18"/>
+  <text class="zone-title" x="820" y="162">NEO4J GRAPH MODEL</text>
+
+  <rect class="zone" x="48" y="890" width="680" height="250" rx="18"/>
+  <text class="zone-title" x="78" y="926">REDIS LIVE STATE</text>
+
+  <rect class="zone" x="790" y="890" width="1082" height="250" rx="18"/>
+  <text class="zone-title" x="820" y="926">API / INGESTION FLOWS</text>
+
+  <!-- MongoDB -->
+  <rect class="card mongo" x="78" y="196" width="280" height="152" rx="10"/>
+  <rect class="head-mongo" x="78" y="196" width="280" height="34" rx="10"/>
+  <text class="card-title" x="98" y="219">IOC</text>
+  <text class="field" x="98" y="252">value, type</text>
+  <text class="field" x="98" y="272">tags[], confidence</text>
+  <text class="field" x="98" y="292">source, enrichment</text>
+  <text class="field-muted" x="98" y="318">unique: value + type</text>
+
+  <rect class="card mongo" x="418" y="196" width="280" height="152" rx="10"/>
+  <rect class="head-mongo" x="418" y="196" width="280" height="34" rx="10"/>
+  <text class="card-title" x="438" y="219">ThreatReport</text>
+  <text class="field" x="438" y="252">title, source, narrative</text>
+  <text class="field" x="438" y="272">tags[]</text>
+  <text class="field" x="438" y="292">iocs[]</text>
+  <text class="field-muted" x="438" y="318">links via IOC.value + tags</text>
+
+  <rect class="card mongo" x="78" y="424" width="280" height="178" rx="10"/>
+  <rect class="head-mongo" x="78" y="424" width="280" height="34" rx="10"/>
+  <text class="card-title" x="98" y="447">HoneypotEvent</text>
+  <text class="field" x="98" y="480">sourceIp</text>
+  <text class="field" x="98" y="500">service, destinationPort</text>
+  <text class="field" x="98" y="520">eventType, severity</text>
+  <text class="field" x="98" y="540">username, password</text>
+  <text class="field" x="98" y="560">path, payload, capturedAt</text>
+  <text class="field-muted" x="98" y="584">sourceIp maps to IP.value</text>
+
+  <rect class="card mongo" x="418" y="424" width="280" height="178" rx="10"/>
+  <rect class="head-mongo" x="418" y="424" width="280" height="34" rx="10"/>
+  <text class="card-title" x="438" y="447">ScanResult</text>
+  <text class="field" x="438" y="480">ip, hostname, status</text>
+  <text class="field" x="438" y="500">ports[]</text>
+  <text class="field" x="438" y="520">open_count, risk_score</text>
+  <text class="field" x="438" y="540">os, traceroute</text>
+  <text class="field" x="438" y="560">raw_output, scan_ts</text>
+  <text class="field-muted" x="438" y="584">ip maps to Device/IP</text>
+
+  <rect class="card mongo" x="248" y="682" width="280" height="122" rx="10"/>
+  <rect class="head-mongo" x="248" y="682" width="280" height="34" rx="10"/>
+  <text class="card-title" x="268" y="705">Alert</text>
+  <text class="field" x="268" y="738">type, severity, title</text>
+  <text class="field" x="268" y="758">ioc_value, campaign_id</text>
+  <text class="field" x="268" y="778">devices[], meta, resolved</text>
+
+  <!-- Mongo relationships -->
+  <path class="rel" d="M358 272 L418 272"/>
+  <rect class="label-bg" x="365" y="240" width="94" height="18" rx="4"/>
+  <text class="rel-label" x="370" y="253">iocs[] contains</text>
+
+  <path class="rel" d="M218 424 L218 348"/>
+  <rect class="label-bg" x="228" y="382" width="92" height="18" rx="4"/>
+  <text class="rel-label" x="234" y="395">sourceIp</text>
+
+  <path class="rel" d="M558 424 L558 348"/>
+  <rect class="label-bg" x="568" y="382" width="70" height="18" rx="4"/>
+  <text class="rel-label" x="574" y="395">scan ip</text>
+
+  <path class="rel" d="M320 682 C250 650 222 626 218 602"/>
+  <rect class="label-bg" x="258" y="630" width="78" height="18" rx="4"/>
+  <text class="rel-label" x="264" y="643">ioc_value</text>
+
+  <path class="rel" d="M456 682 C516 650 550 626 558 602"/>
+  <rect class="label-bg" x="508" y="630" width="78" height="18" rx="4"/>
+  <text class="rel-label" x="514" y="643">devices[]</text>
+
+  <!-- Neo4j nodes -->
+  <rect class="card neo" x="840" y="210" width="150" height="64" rx="10"/>
+  <rect class="head-neo" x="840" y="210" width="150" height="28" rx="10"/>
+  <text class="entity-title" x="895" y="229">IP</text>
+  <text class="field" x="858" y="257">value, asn</text>
+
+  <rect class="card neo" x="1110" y="210" width="160" height="64" rx="10"/>
+  <rect class="head-neo" x="1110" y="210" width="160" height="28" rx="10"/>
+  <text class="entity-title" x="1160" y="229">Domain</text>
+  <text class="field" x="1128" y="257">value</text>
+
+  <rect class="card neo" x="1380" y="210" width="160" height="64" rx="10"/>
+  <rect class="head-neo" x="1380" y="210" width="160" height="28" rx="10"/>
+  <text class="entity-title" x="1428" y="229">Malware</text>
+  <text class="field" x="1398" y="257">name, family</text>
+
+  <rect class="card neo" x="1110" y="360" width="160" height="64" rx="10"/>
+  <rect class="head-neo" x="1110" y="360" width="160" height="28" rx="10"/>
+  <text class="entity-title" x="1172" y="379">CVE</text>
+  <text class="field" x="1128" y="407">cve_id</text>
+
+  <rect class="card neo" x="1380" y="360" width="160" height="64" rx="10"/>
+  <rect class="head-neo" x="1380" y="360" width="160" height="28" rx="10"/>
+  <text class="entity-title" x="1428" y="379">Exploit</text>
+  <text class="field" x="1398" y="407">module_name</text>
+
+  <rect class="card neo" x="1110" y="510" width="160" height="64" rx="10"/>
+  <rect class="head-neo" x="1110" y="510" width="160" height="28" rx="10"/>
+  <text class="entity-title" x="1142" y="529">Campaign</text>
+  <text class="field" x="1128" y="557">campaign_id</text>
+
+  <rect class="card neo" x="1380" y="510" width="160" height="64" rx="10"/>
+  <rect class="head-neo" x="1380" y="510" width="160" height="28" rx="10"/>
+  <text class="entity-title" x="1408" y="529">ThreatActor</text>
+  <text class="field" x="1398" y="557">name, aliases</text>
+
+  <rect class="card neo" x="840" y="510" width="150" height="64" rx="10"/>
+  <rect class="head-neo" x="840" y="510" width="150" height="28" rx="10"/>
+  <text class="entity-title" x="890" y="529">Device</text>
+  <text class="field" x="858" y="557">hostname, ip</text>
+
+  <rect class="card neo" x="840" y="660" width="150" height="64" rx="10"/>
+  <rect class="head-neo" x="840" y="660" width="150" height="28" rx="10"/>
+  <text class="entity-title" x="900" y="679">Port</text>
+  <text class="field" x="858" y="707">number</text>
+
+  <rect class="card neo" x="1110" y="660" width="160" height="64" rx="10"/>
+  <rect class="head-neo" x="1110" y="660" width="160" height="28" rx="10"/>
+  <text class="entity-title" x="1150" y="679">Service</text>
+  <text class="field" x="1128" y="707">name, version</text>
+
+  <rect class="card neo" x="1380" y="660" width="160" height="64" rx="10"/>
+  <rect class="head-neo" x="1380" y="660" width="160" height="28" rx="10"/>
+  <text class="entity-title" x="1414" y="679">Credential</text>
+  <text class="field" x="1398" y="707">username</text>
+
+  <rect class="card neo" x="1620" y="210" width="150" height="64" rx="10"/>
+  <rect class="head-neo" x="1620" y="210" width="150" height="28" rx="10"/>
+  <text class="entity-title" x="1670" y="229">ASN</text>
+  <text class="field" x="1638" y="257">asn, isp</text>
+
+  <rect class="card neo" x="1620" y="360" width="150" height="64" rx="10"/>
+  <rect class="head-neo" x="1620" y="360" width="150" height="28" rx="10"/>
+  <text class="entity-title" x="1672" y="379">Geo</text>
+  <text class="field" x="1638" y="407">country</text>
+
+  <rect class="card neo" x="1620" y="510" width="150" height="64" rx="10"/>
+  <rect class="head-neo" x="1620" y="510" width="150" height="28" rx="10"/>
+  <text class="entity-title" x="1648" y="529">IntelSource</text>
+  <text class="field" x="1638" y="557">OTX / AbuseIPDB</text>
+
+  <rect class="card neo" x="1620" y="660" width="150" height="64" rx="10"/>
+  <rect class="head-neo" x="1620" y="660" width="150" height="28" rx="10"/>
+  <text class="entity-title" x="1646" y="679">Observation</text>
+  <text class="field" x="1638" y="707">sections</text>
+
+  <!-- Neo4j relationships: routed by rows and columns -->
+  <path class="rel-neo" d="M990 242 L1110 242"/>
+  <rect class="label-bg" x="1014" y="210" width="80" height="18" rx="4"/>
+  <text class="rel-label" x="1020" y="223">RESOLVES_TO</text>
+
+  <path class="rel-neo" d="M1270 242 L1380 242"/>
+  <rect class="label-bg" x="1302" y="210" width="48" height="18" rx="4"/>
+  <text class="rel-label" x="1308" y="223">HOSTS</text>
+
+  <path class="rel-neo" d="M1460 274 L1460 330 L1190 330 L1190 360"/>
+  <rect class="label-bg" x="1300" y="318" width="62" height="18" rx="4"/>
+  <text class="rel-label" x="1306" y="331">EXPLOITS</text>
+
+  <path class="rel-neo" d="M1270 392 L1380 392"/>
+  <rect class="label-bg" x="1300" y="360" width="86" height="18" rx="4"/>
+  <text class="rel-label" x="1306" y="373">HAS_EXPLOIT</text>
+
+  <path class="rel-neo" d="M1460 274 L1460 480 L1190 480 L1190 510"/>
+  <rect class="label-bg" x="1306" y="468" width="58" height="18" rx="4"/>
+  <text class="rel-label" x="1312" y="481">USED_BY</text>
+
+  <path class="rel-neo" d="M1270 542 L1380 542"/>
+  <rect class="label-bg" x="1294" y="510" width="92" height="18" rx="4"/>
+  <text class="rel-label" x="1300" y="523">OPERATED_BY</text>
+
+  <path class="rel-neo" d="M915 274 L915 510"/>
+  <rect class="label-bg" x="930" y="384" width="72" height="18" rx="4"/>
+  <text class="rel-label" x="936" y="397">CONTACTED</text>
+
+  <path class="rel-neo" d="M915 574 L915 660"/>
+  <rect class="label-bg" x="930" y="608" width="66" height="18" rx="4"/>
+  <text class="rel-label" x="936" y="621">HAS_PORT</text>
+
+  <path class="rel-neo" d="M990 692 L1110 692"/>
+  <rect class="label-bg" x="1030" y="660" width="42" height="18" rx="4"/>
+  <text class="rel-label" x="1036" y="673">RUNS</text>
+
+  <path class="rel-neo" d="M1190 660 L1190 424"/>
+  <rect class="label-bg" x="1204" y="534" width="106" height="18" rx="4"/>
+  <text class="rel-label" x="1210" y="547">VULNERABLE_TO</text>
+
+  <path class="rel-neo" d="M990 535 C1180 612 1260 692 1380 692"/>
+  <rect class="label-bg" x="1152" y="625" width="132" height="18" rx="4"/>
+  <text class="rel-label" x="1158" y="638">ATTEMPTED_CREDENTIAL</text>
+
+  <path class="rel-neo" d="M990 226 C1300 138 1500 138 1695 210"/>
+  <rect class="label-bg" x="1388" y="140" width="94" height="18" rx="4"/>
+  <text class="rel-label" x="1394" y="153">ANNOUNCED_BY</text>
+
+  <path class="rel-neo" d="M990 258 C1300 330 1500 330 1620 392"/>
+  <rect class="label-bg" x="1398" y="320" width="78" height="18" rx="4"/>
+  <text class="rel-label" x="1404" y="333">LOCATED_IN</text>
+
+  <path class="rel-neo" d="M990 274 C1260 450 1480 504 1620 542"/>
+  <rect class="label-bg" x="1358" y="480" width="148" height="18" rx="4"/>
+  <text class="rel-label" x="1364" y="493">PROFILED_BY / CHECKED_BY</text>
+
+  <path class="rel-neo" d="M1695 574 L1695 660"/>
+  <rect class="label-bg" x="1710" y="608" width="84" height="18" rx="4"/>
+  <text class="rel-label" x="1716" y="621">HAS_SECTION</text>
+
+  <!-- Redis cards -->
+  <rect class="card redis" x="78" y="958" width="290" height="122" rx="10"/>
+  <rect class="head-redis" x="78" y="958" width="290" height="34" rx="10"/>
+  <text class="card-title" x="98" y="981">hot:iocs</text>
+  <text class="field" x="98" y="1014">sorted set: IOC/IP -> score</text>
+  <text class="field" x="98" y="1034">used by leaderboard</text>
+  <text class="field" x="98" y="1054">used by campaign correlation</text>
+
+  <rect class="card redis" x="398" y="958" width="290" height="122" rx="10"/>
+  <rect class="head-redis" x="398" y="958" width="290" height="34" rx="10"/>
+  <text class="card-title" x="418" y="981">campaign:active</text>
+  <text class="field" x="418" y="1014">set: Campaign.campaign_id</text>
+  <text class="field" x="418" y="1034">marks active campaigns</text>
+  <text class="field" x="418" y="1054">used by investigation graph</text>
+
+  <rect class="card redis" x="78" y="1096" width="290" height="28" rx="8"/>
+  <text class="field" x="98" y="1115">risk:host:&lt;target&gt; -> TTL risk</text>
+  <rect class="card redis" x="398" y="1096" width="290" height="28" rx="8"/>
+  <text class="field" x="418" y="1115">stats:ingested:&lt;type&gt; -> count</text>
+
+  <!-- API cards -->
+  <rect class="card api" x="840" y="958" width="260" height="126" rx="10"/>
+  <rect class="head-api" x="840" y="958" width="260" height="34" rx="10"/>
+  <text class="card-title" x="860" y="981">/api/ingest</text>
+  <text class="field" x="860" y="1014">creates IOC</text>
+  <text class="field" x="860" y="1034">updates Redis stats</text>
+  <text class="field" x="860" y="1054">MERGE IP/Domain nodes</text>
+
+  <rect class="card api" x="1180" y="958" width="260" height="126" rx="10"/>
+  <rect class="head-api" x="1180" y="958" width="260" height="34" rx="10"/>
+  <text class="card-title" x="1200" y="981">/api/honeypot/events</text>
+  <text class="field" x="1200" y="1014">creates HoneypotEvent</text>
+  <text class="field" x="1200" y="1034">upserts IOC sourceIp</text>
+  <text class="field" x="1200" y="1054">IP -> Service/Credential</text>
+
+  <rect class="card api" x="1520" y="958" width="260" height="126" rx="10"/>
+  <rect class="head-api" x="1520" y="958" width="260" height="34" rx="10"/>
+  <text class="card-title" x="1540" y="981">/api/scan/run</text>
+  <text class="field" x="1540" y="1014">creates ScanResult</text>
+  <text class="field" x="1540" y="1034">Device -> Port -> Service</text>
+  <text class="field" x="1540" y="1054">sets risk:host TTL</text>
+
+  <!-- Cross-store relationships routed through gutters -->
+  <path class="rel-soft" d="M358 238 C520 134 680 120 840 224"/>
+  <rect class="label-bg" x="482" y="134" width="176" height="18" rx="4"/>
+  <text class="rel-label" x="488" y="147">IOC.value -> IP / Domain</text>
+
+  <path class="rel-soft" d="M358 502 C540 502 680 502 840 535"/>
+  <rect class="label-bg" x="516" y="484" width="150" height="18" rx="4"/>
+  <text class="rel-label" x="522" y="497">sourceIp -> IP node</text>
+
+  <path class="rel-soft" d="M698 512 C752 560 790 620 840 682"/>
+  <rect class="label-bg" x="706" y="622" width="116" height="18" rx="4"/>
+  <text class="rel-label" x="712" y="635">scan -> Device</text>
+
+  <path class="rel-data" d="M218 602 C218 740 218 850 222 958"/>
+  <rect class="label-bg" x="232" y="780" width="112" height="18" rx="4"/>
+  <text class="rel-label" x="238" y="793">increments hits</text>
+
+  <path class="rel-data" d="M558 602 C598 760 568 856 542 958"/>
+  <rect class="label-bg" x="578" y="790" width="118" height="18" rx="4"/>
+  <text class="rel-label" x="584" y="803">stores risk score</text>
+
+  <path class="rel-data" d="M1190 574 C950 780 680 880 542 958"/>
+  <rect class="label-bg" x="784" y="828" width="142" height="18" rx="4"/>
+  <text class="rel-label" x="790" y="841">active campaign set</text>
+
+  <path class="rel-api" d="M970 958 C900 882 760 808 528 744"/>
+  <rect class="label-bg" x="744" y="852" width="108" height="18" rx="4"/>
+  <text class="rel-label" x="750" y="865">writes IOC</text>
+
+  <path class="rel-api" d="M1310 958 C1210 820 1040 640 990 535"/>
+  <rect class="label-bg" x="1104" y="826" width="138" height="18" rx="4"/>
+  <text class="rel-label" x="1110" y="839">writes events + graph</text>
+
+  <path class="rel-api" d="M1650 958 C1520 842 1300 734 990 692"/>
+  <rect class="label-bg" x="1350" y="832" width="128" height="18" rx="4"/>
+  <text class="rel-label" x="1356" y="845">writes scan graph</text>
+
+  <!-- Legend -->
+  <rect x="60" y="1206" width="28" height="5" fill="#475569"/>
+  <text class="legend" x="100" y="1214">Mongo document relationship</text>
+  <rect x="330" y="1206" width="28" height="5" fill="#7c3aed"/>
+  <text class="legend" x="370" y="1214">Neo4j relationship</text>
+  <rect x="560" y="1206" width="28" height="5" fill="#16a34a"/>
+  <text class="legend" x="600" y="1214">Redis state link</text>
+  <rect x="760" y="1206" width="28" height="5" fill="#ea580c"/>
+  <text class="legend" x="800" y="1214">API write flow</text>
+  <rect x="960" y="1206" width="28" height="5" fill="#94a3b8"/>
+  <text class="legend" x="1000" y="1214">Cross-store mapping</text>
+</svg>

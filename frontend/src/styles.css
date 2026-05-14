@@ -91,6 +91,15 @@ select {
   gap: 20px;
   align-items: flex-start;
   margin-bottom: 18px;
+  color: var(--text);
+}
+
+[data-theme="night"] .soc-header {
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.26);
 }
 
 .eyebrow {
@@ -110,6 +119,12 @@ select {
   font-size: 28px;
   line-height: 1.1;
   letter-spacing: 0;
+  color: var(--text);
+  text-shadow: none;
+}
+
+[data-theme="night"] .soc-title {
+  color: #f2fbfc;
 }
 
 .status-light {
@@ -124,6 +139,10 @@ select {
   margin: 8px 0 0;
   color: var(--muted);
   font-size: 13px;
+}
+
+[data-theme="night"] .soc-subtitle {
+  color: #b7cbd2;
 }
 
 .header-actions {

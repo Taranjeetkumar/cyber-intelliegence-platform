@@ -47,6 +47,7 @@ services:
       ABUSEIPDB_API_KEY: ${ABUSEIPDB_API_KEY:-}
       OTX_API_KEY: ${OTX_API_KEY:-}
       ABUSEIPDB_MAX_AGE_DAYS: 90
+      THREAT_INTEL_TIMEOUT_MS: ${THREAT_INTEL_TIMEOUT_MS:-5000}
     depends_on:
       mongodb:
         condition: service_healthy

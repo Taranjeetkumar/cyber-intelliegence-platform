@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="860" viewBox="0 0 1280 860" role="img" aria-labelledby="title desc">
+  <title id="title">Cyber Intelligence Platform Docker Structure</title>
+  <desc id="desc">Docker Compose architecture showing frontend, backend, databases, honeypods, ports, volumes, and the cti_net bridge network.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f6f7fb; }
+      .title { font: 700 30px Arial, sans-serif; fill: #14213d; }
+      .subtitle { font: 14px Arial, sans-serif; fill: #5f6f89; }
+      .network { fill: #ffffff; stroke: #9db2ce; stroke-width: 2; stroke-dasharray: 10 8; }
+      .network-title { font: 700 18px Arial, sans-serif; fill: #284b75; }
+      .box { fill: #ffffff; stroke: #d5deea; stroke-width: 2; }
+      .frontend { stroke: #2f80ed; }
+      .backend { stroke: #7b61ff; }
+      .db { stroke: #2f9e44; }
+      .honey { stroke: #f08c00; }
+      .external { fill: #eef4ff; stroke: #92b4ec; stroke-width: 2; }
+      .vol { fill: #f7fff6; stroke: #a8d5a2; stroke-width: 1.5; }
+      .label { font: 700 16px Arial, sans-serif; fill: #1f2937; }
+      .small { font: 12px Arial, sans-serif; fill: #506070; }
+      .mono { font: 12px Consolas, Monaco, monospace; fill: #263238; }
+      .tag { font: 700 11px Arial, sans-serif; fill: #ffffff; }
+      .port { font: 700 12px Consolas, Monaco, monospace; fill: #14213d; }
+      .arrow { stroke: #4b5d75; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+      .soft-arrow { stroke: #8a99ad; stroke-width: 2; fill: none; marker-end: url(#softArrow); stroke-dasharray: 6 6; }
+      .event-arrow { stroke: #f08c00; stroke-width: 2.6; fill: none; marker-end: url(#eventArrow); }
+      .data-arrow { stroke: #2f9e44; stroke-width: 2.4; fill: none; marker-end: url(#dataArrow); }
+      .legend-text { font: 12px Arial, sans-serif; fill: #39485d; }
+    </style>
+    <marker id="arrow" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L11,4 L0,8 Z" fill="#4b5d75"/>
+    </marker>
+    <marker id="softArrow" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L11,4 L0,8 Z" fill="#8a99ad"/>
+    </marker>
+    <marker id="eventArrow" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L11,4 L0,8 Z" fill="#f08c00"/>
+    </marker>
+    <marker id="dataArrow" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L11,4 L0,8 Z" fill="#2f9e44"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1280" height="860"/>
+
+  <text class="title" x="48" y="54">Cyber Intelligence Platform Docker Structure</text>
+  <text class="subtitle" x="48" y="80">Generated from docker-compose.yml: frontend, backend, databases, honeypods, volumes, exposed ports, and cti_net.</text>
+
+  <rect class="external" x="48" y="116" width="230" height="128" rx="10"/>
+  <text class="label" x="74" y="152">Host Browser / User</text>
+  <text class="small" x="74" y="178">Accesses web UI and APIs</text>
+  <text class="port" x="74" y="204">http://localhost</text>
+  <text class="port" x="74" y="224">http://localhost:5000</text>
+
+  <rect class="external" x="48" y="640" width="230" height="128" rx="10"/>
+  <text class="label" x="74" y="676">External Traffic</text>
+  <text class="small" x="74" y="702">Test connections into honeypods</text>
+  <text class="port" x="74" y="728">SSH :2222</text>
+  <text class="port" x="74" y="748">HTTP :8080 / Telnet :2323</text>
+
+  <rect class="network" x="318" y="116" width="900" height="652" rx="20"/>
+  <text class="network-title" x="348" y="150">Docker Bridge Network: cti_net</text>
+
+  <rect class="box frontend" x="384" y="190" width="230" height="126" rx="10"/>
+  <rect x="404" y="212" width="70" height="22" rx="11" fill="#2f80ed"/>
+  <text class="tag" x="421" y="227">WEB</text>
+  <text class="label" x="404" y="262">frontend</text>
+  <text class="mono" x="404" y="286">cti_frontend</text>
+  <text class="small" x="404" y="306">nginx unprivileged</text>
+
+  <rect class="box backend" x="710" y="190" width="250" height="144" rx="10"/>
+  <rect x="730" y="212" width="70" height="22" rx="11" fill="#7b61ff"/>
+  <text class="tag" x="746" y="227">API</text>
+  <text class="label" x="730" y="262">backend</text>
+  <text class="mono" x="730" y="286">cti_backend</text>
+  <text class="small" x="730" y="306">Express + Nmap</text>
+  <text class="small" x="730" y="324">/api/* routes</text>
+
+  <rect class="box db" x="384" y="414" width="210" height="110" rx="10"/>
+  <rect x="404" y="434" width="82" height="22" rx="11" fill="#2f9e44"/>
+  <text class="tag" x="420" y="449">DATA</text>
+  <text class="label" x="404" y="480">mongodb</text>
+  <text class="mono" x="404" y="504">cti_mongodb</text>
+
+  <rect class="box db" x="650" y="414" width="210" height="110" rx="10"/>
+  <rect x="670" y="434" width="82" height="22" rx="11" fill="#2f9e44"/>
+  <text class="tag" x="686" y="449">CACHE</text>
+  <text class="label" x="670" y="480">redis</text>
+  <text class="mono" x="670" y="504">cti_redis</text>
+
+  <rect class="box db" x="916" y="414" width="210" height="110" rx="10"/>
+  <rect x="936" y="434" width="82" height="22" rx="11" fill="#2f9e44"/>
+  <text class="tag" x="953" y="449">GRAPH</text>
+  <text class="label" x="936" y="480">neo4j</text>
+  <text class="mono" x="936" y="504">cti_neo4j</text>
+
+  <rect class="box honey" x="384" y="612" width="210" height="96" rx="10"/>
+  <rect x="404" y="632" width="94" height="22" rx="11" fill="#f08c00"/>
+  <text class="tag" x="420" y="647">HONEYPOD</text>
+  <text class="label" x="404" y="678">honeypod-ssh</text>
+  <text class="mono" x="404" y="700">honeypod_ssh</text>
+
+  <rect class="box honey" x="650" y="612" width="210" height="96" rx="10"/>
+  <rect x="670" y="632" width="94" height="22" rx="11" fill="#f08c00"/>
+  <text class="tag" x="686" y="647">HONEYPOD</text>
+  <text class="label" x="670" y="678">honeypod-http</text>
+  <text class="mono" x="670" y="700">honeypod_http</text>
+
+  <rect class="box honey" x="916" y="612" width="210" height="96" rx="10"/>
+  <rect x="936" y="632" width="94" height="22" rx="11" fill="#f08c00"/>
+  <text class="tag" x="952" y="647">HONEYPOD</text>
+  <text class="label" x="936" y="678">honeypod-telnet</text>
+  <text class="mono" x="936" y="700">honeypod_telnet</text>
+
+  <rect class="vol" x="384" y="546" width="210" height="36" rx="8"/>
+  <text class="mono" x="422" y="569">mongo_data:/data/db</text>
+  <rect class="vol" x="650" y="546" width="210" height="36" rx="8"/>
+  <text class="mono" x="699" y="569">redis_data:/data</text>
+  <rect class="vol" x="916" y="546" width="210" height="36" rx="8"/>
+  <text class="mono" x="948" y="569">neo4j_data, neo4j_logs</text>
+
+  <path class="arrow" d="M278 176 C314 176 338 220 382 238"/>
+  <text class="port" x="292" y="164">80:8080</text>
+
+  <path class="arrow" d="M278 216 C396 216 570 244 708 258"/>
+  <text class="port" x="356" y="208">5000:5000</text>
+
+  <path class="arrow" d="M614 253 L708 253"/>
+  <text class="small" x="632" y="242">proxy API</text>
+
+  <path class="data-arrow" d="M788 334 C720 382 620 394 540 414"/>
+  <text class="small" x="588" y="376">MongoDB docs</text>
+
+  <path class="data-arrow" d="M835 334 C814 370 783 390 760 414"/>
+  <text class="small" x="790" y="378">Redis cache</text>
+
+  <path class="data-arrow" d="M883 334 C923 370 970 390 1000 414"/>
+  <text class="small" x="934" y="378">Neo4j graph</text>
+
+  <path class="event-arrow" d="M594 654 C650 598 700 428 768 334"/>
+  <path class="event-arrow" d="M755 612 C774 520 800 410 827 334"/>
+  <path class="event-arrow" d="M936 612 C912 520 875 410 848 334"/>
+  <text class="small" x="612" y="594">POST /api/honeypot/events</text>
+
+  <path class="soft-arrow" d="M278 686 L382 660"/>
+  <text class="port" x="292" y="676">2222:2222</text>
+  <path class="soft-arrow" d="M278 714 C416 720 534 690 648 664"/>
+  <text class="port" x="302" y="736">8080:8080</text>
+  <path class="soft-arrow" d="M278 744 C506 794 768 728 914 668"/>
+  <text class="port" x="302" y="762">2323:2323</text>
+
+  <text class="port" x="407" y="338">Frontend exposed: localhost:80</text>
+  <text class="port" x="730" y="358">Backend exposed: localhost:5000</text>
+  <text class="port" x="405" y="536">localhost:27017</text>
+  <text class="port" x="671" y="536">localhost:6379 / 8001</text>
+  <text class="port" x="937" y="536">localhost:7474 / 7687</text>
+
+  <rect x="48" y="804" width="28" height="4" fill="#4b5d75"/>
+  <text class="legend-text" x="86" y="811">User/API traffic</text>
+  <rect x="222" y="804" width="28" height="4" fill="#2f9e44"/>
+  <text class="legend-text" x="260" y="811">Data connections</text>
+  <rect x="430" y="804" width="28" height="4" fill="#f08c00"/>
+  <text class="legend-text" x="468" y="811">Honeypot event forwarding</text>
+  <rect x="694" y="802" width="28" height="4" fill="#8a99ad"/>
+  <text class="legend-text" x="732" y="811">Exposed honeypod ports</text>
+</svg>
