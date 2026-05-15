@@ -12,8 +12,7 @@ const buildHeaders = () => {
   return headers;
 };
 
-const fetchSection = async (ipAddress, section) => {
-  const url = `${OTX_BASE_URL}/indicators/IPv4/${encodeURIComponent(ipAddress)}/${section}`;
+const fetchJson = async (url) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -25,19 +24,24 @@ const fetchSection = async (ipAddress, section) => {
       throw new Error(
         payload?.detail ||
           payload?.error ||
-          `OTX ${section} request failed with status ${response.status}`
+          `OTX request failed with status ${response.status}`
       );
     }
 
     return payload;
   } catch (err) {
     if (err.name === "AbortError") {
-      throw new Error(`OTX ${section} request timed out`);
+      throw new Error("OTX request timed out");
     }
     throw err;
   } finally {
     clearTimeout(timeout);
   }
+};
+
+const fetchSection = async (ipAddress, section) => {
+  const url = `${OTX_BASE_URL}/indicators/IPv4/${encodeURIComponent(ipAddress)}/${section}`;
+  return fetchJson(url);
 };
 
 const checkIpThreatIntel = async (ipAddress) => {
@@ -68,4 +72,62 @@ const checkIpThreatIntel = async (ipAddress) => {
   }
 };
 
-module.exports = { checkIpThreatIntel };
+const getSubscribedPulseIndicators = async ({ limit = 5 } = {}) => {
+  if (!process.env.OTX_API_KEY) {
+    return {
+      configured: false,
+      error: "OTX_API_KEY is not configured",
+      data: [],
+    };
+  }
+
+  const maxIndicators = Math.min(Math.max(Number(limit) || 5, 1), 25);
+  const url = new URL(`${OTX_BASE_URL}/pulses/subscribed`);
+  url.searchParams.set("limit", String(Math.min(maxIndicators, 10)));
+  url.searchParams.set("page", "1");
+
+  try {
+    const payload = await fetchJson(url.toString());
+    const pulses = Array.isArray(payload.results) ? payload.results : [];
+    const seen = new Set();
+    const indicators = [];
+
+    for (const pulse of pulses) {
+      const pulseIndicators = Array.isArray(pulse.indicators) ? pulse.indicators : [];
+
+      for (const indicator of pulseIndicators) {
+        if (indicator.type !== "IPv4" || !indicator.indicator || seen.has(indicator.indicator)) continue;
+        seen.add(indicator.indicator);
+        indicators.push({
+          value: indicator.indicator,
+          type: "ip",
+          source: "otx-subscribed-pulse",
+          pulse_id: pulse.id,
+          pulse_name: pulse.name,
+          adversary: pulse.adversary,
+          tags: Array.isArray(pulse.tags) ? pulse.tags : [],
+          modified: pulse.modified,
+          created: pulse.created,
+        });
+
+        if (indicators.length >= maxIndicators) break;
+      }
+
+      if (indicators.length >= maxIndicators) break;
+    }
+
+    return {
+      configured: true,
+      data: indicators,
+      pulse_count: pulses.length,
+    };
+  } catch (err) {
+    return {
+      configured: true,
+      error: err.message,
+      data: [],
+    };
+  }
+};
+
+module.exports = { checkIpThreatIntel, getSubscribedPulseIndicators };

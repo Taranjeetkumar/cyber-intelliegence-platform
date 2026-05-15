@@ -5,6 +5,7 @@ const { getRedis } = require("../config/redis");
 const Alert = require("../models/Alert");
 const IOC = require("../models/IOC");
 const { checkIpReputation, getBlacklistedIps } = require("./abuseIpDbService");
+const { checkIpThreatIntel, getSubscribedPulseIndicators } = require("./otxService");
 
 const toNum = (val) =>
   val && typeof val === "object" && "low" in val ? val.low : Number(val);
@@ -114,6 +115,91 @@ const syncLiveAbuseIntel = async (iocValues) => {
   return intel;
 };
 
+const syncLiveOtxIntel = async (iocValues) => {
+  const publicIps = [...new Set(iocValues.filter(isPublicIpv4))];
+  if (!publicIps.length) return [];
+
+  const session = getNeo4jSession();
+  const intel = [];
+
+  try {
+    for (const ip of publicIps) {
+      const otx = await checkIpThreatIntel(ip);
+      const pulseInfo = otx.general?.pulse_info;
+      const pulseCount = Number(pulseInfo?.count || 0);
+      const reputation = Number(otx.reputation?.reputation ?? otx.general?.reputation ?? 0) || 0;
+
+      if (!otx.general && !otx.reputation) {
+        intel.push({
+          value: ip,
+          source: "otx",
+          configured: otx.configured,
+          error: otx.errors?.join("; ") || "No OTX data returned",
+        });
+        continue;
+      }
+
+      const now = new Date();
+      const pulses = Array.isArray(pulseInfo?.pulses) ? pulseInfo.pulses.slice(0, 5) : [];
+
+      await IOC.findOneAndUpdate(
+        { value: ip, type: "ip" },
+        {
+          $set: {
+            last_seen: now,
+            "enrichment.otx_reputation": reputation,
+            "enrichment.otx_pulse_count": pulseCount,
+            "enrichment.otx_sections": otx.general?.sections,
+            "enrichment.otx_pulses": pulses.map((pulse) => ({
+              id: pulse.id,
+              name: pulse.name,
+              modified: pulse.modified,
+            })),
+          },
+          $addToSet: { tags: { $each: ["live-intel", "otx"] } },
+          $setOnInsert: { first_seen: now, source: "otx-live", confidence: Math.min(100, Math.max(50, reputation || pulseCount * 10)) },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+
+      await session.run(
+        `
+        MERGE (i:IP {value: $ip})
+        SET i.otxReputation = $reputation,
+            i.otxPulseCount = $pulseCount,
+            i.otxSections = $sections,
+            i.last_seen = $ts
+        RETURN i
+        `,
+        {
+          ip,
+          reputation,
+          pulseCount,
+          sections: Array.isArray(otx.general?.sections) ? otx.general.sections.join(", ") : "",
+          ts: now.toISOString(),
+        }
+      );
+
+      intel.push({
+        value: ip,
+        source: "otx",
+        configured: otx.configured,
+        reputation,
+        pulse_count: pulseCount,
+        pulses: pulses.map((pulse) => ({
+          id: pulse.id,
+          name: pulse.name,
+          modified: pulse.modified,
+        })),
+      });
+    }
+  } finally {
+    await session.close();
+  }
+
+  return intel;
+};
+
 const buildLiveIntelCampaignMatches = (liveIntel) => {
   const threshold = Number(process.env.CAMPAIGN_ABUSEIPDB_SCORE_THRESHOLD || 75);
   const highRisk = liveIntel.filter((item) => Number(item.abuse_score || 0) >= threshold);
@@ -134,15 +220,37 @@ const buildLiveIntelCampaignMatches = (liveIntel) => {
   ];
 };
 
+const buildLiveOtxCampaignMatches = (otxIntel) => {
+  const minPulses = Number(process.env.CAMPAIGN_OTX_MIN_PULSES || 1);
+  const matched = otxIntel.filter((item) => Number(item.pulse_count || 0) >= minPulses);
+
+  if (!matched.length) return [];
+
+  return [
+    {
+      campaign_name: "LIVE_OTX_PULSE_MATCH",
+      campaign_id: "LIVE_OTX_PULSE_MATCH",
+      actor_name: "AlienVault OTX pulses",
+      matched_count: matched.length,
+      matched_ips: matched.map((item) => item.value),
+      source: "otx-live",
+      severity: matched.some((item) => item.pulse_count >= 3 || item.reputation >= 80) ? "critical" : "high",
+      live_intel: matched,
+    },
+  ];
+};
+
 const importLiveAbuseFeed = async ({ limit = 5, confidenceMinimum = 90 } = {}) => {
-  const feed = await getBlacklistedIps({ limit, confidenceMinimum });
-  if (feed.error) return { ...feed, imported: [] };
+  const [abuseFeed, otxFeed] = await Promise.all([
+    getBlacklistedIps({ limit, confidenceMinimum }),
+    getSubscribedPulseIndicators({ limit }),
+  ]);
 
   const redis = getRedis();
   const imported = [];
   const now = new Date();
 
-  for (const item of feed.data) {
+  for (const item of abuseFeed.data || []) {
     const value = item.ipAddress || item.ip;
     if (!value) continue;
 
@@ -171,6 +279,7 @@ const importLiveAbuseFeed = async ({ limit = 5, confidenceMinimum = 90 } = {}) =
 
     imported.push({
       value,
+      source: "abuseipdb-blacklist",
       abuse_score: abuseScore,
       total_reports: totalReports,
       country: item.countryCode,
@@ -178,13 +287,58 @@ const importLiveAbuseFeed = async ({ limit = 5, confidenceMinimum = 90 } = {}) =
     });
   }
 
+  for (const item of otxFeed.data || []) {
+    const value = item.value;
+    if (!value) continue;
+
+    await IOC.findOneAndUpdate(
+      { value, type: "ip" },
+      {
+        $set: {
+          last_seen: now,
+          source: "otx-subscribed-pulse",
+          confidence: 80,
+          "enrichment.otx_pulse_id": item.pulse_id,
+          "enrichment.otx_pulse_name": item.pulse_name,
+          "enrichment.otx_adversary": item.adversary,
+          "enrichment.otx_modified": item.modified,
+        },
+        $addToSet: { tags: { $each: ["live-feed", "otx", ...item.tags.slice(0, 8)] } },
+        $setOnInsert: { first_seen: now },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    await redis.zAdd("hot:iocs", [{ score: 80, value }]);
+
+    imported.push({
+      value,
+      source: "otx-subscribed-pulse",
+      pulse_name: item.pulse_name,
+      adversary: item.adversary,
+      tags: item.tags,
+      modified: item.modified,
+    });
+  }
+
   return {
-    configured: feed.configured,
+    configured: Boolean(abuseFeed.configured || otxFeed.configured),
+    sources: {
+      abuseipdb: {
+        configured: abuseFeed.configured,
+        error: abuseFeed.error,
+      },
+      otx: {
+        configured: otxFeed.configured,
+        error: otxFeed.error,
+        pulse_count: otxFeed.pulse_count,
+      },
+    },
     imported,
     count: imported.length,
     message: imported.length
-      ? `${imported.length} live AbuseIPDB blacklist IPs added to Redis hot:iocs`
-      : "AbuseIPDB returned no blacklist IPs for the current filters",
+      ? `${imported.length} live AbuseIPDB/OTX IPs added to Redis hot:iocs`
+      : "No live AbuseIPDB blacklist or OTX subscribed-pulse IPs were returned",
   };
 };
 
@@ -213,9 +367,13 @@ const runCorrelation = async (topN = 20, threshold = 2) => {
   const ipList = topIocs.map((i) => i.value);
   console.log(`Campaign Correlation: Checking IPs: ${ipList.join(", ")}`);
 
-  console.log("Campaign Correlation: Pulling live AbuseIPDB data for public IPs...");
-  const liveIntel = await syncLiveAbuseIntel(ipList);
+  console.log("Campaign Correlation: Pulling live AbuseIPDB and OTX data for public IPs...");
+  const [liveIntel, otxIntel] = await Promise.all([
+    syncLiveAbuseIntel(ipList),
+    syncLiveOtxIntel(ipList),
+  ]);
   console.log(`Campaign Correlation: AbuseIPDB checked ${liveIntel.length} public IPs`);
+  console.log(`Campaign Correlation: OTX checked ${otxIntel.length} public IPs`);
 
   const session = getNeo4jSession();
   let campaignMatches = [];
@@ -267,6 +425,7 @@ const runCorrelation = async (topN = 20, threshold = 2) => {
   campaignMatches = [
     ...campaignMatches,
     ...buildLiveIntelCampaignMatches(liveIntel),
+    ...buildLiveOtxCampaignMatches(otxIntel),
   ];
 
   if (!campaignMatches.length) {
@@ -275,7 +434,8 @@ const runCorrelation = async (topN = 20, threshold = 2) => {
       matched_campaigns: [],
       top_iocs_checked: ipList.length,
       live_intel: liveIntel,
-      message: "No campaigns matched the IOCs and no high-risk live AbuseIPDB indicators were found.",
+      otx_intel: otxIntel,
+      message: "No campaigns matched the IOCs and no high-risk live AbuseIPDB/OTX indicators were found.",
     };
   }
 
@@ -329,6 +489,7 @@ const runCorrelation = async (topN = 20, threshold = 2) => {
     alerts: newAlerts,
     matched_campaigns: campaignMatches,
     live_intel: liveIntel,
+    otx_intel: otxIntel,
     top_iocs_checked: ipList.length,
   };
 };

@@ -491,7 +491,7 @@ export function CampaignAlertPage() {
             <div style={s.triggerBar}>
                 <div style={s.triggerInfo}>
                     <strong style={{ color: theme.textPrimary }}>Correlation Engine</strong> — Reads top 20 IOCs from Redis,
-                    checks Neo4j for campaign membership, and fires an alert if the number of matching IPs meets or exceeds the threshold.
+                    checks Neo4j campaign membership, enriches with AbuseIPDB + AlienVault OTX, and fires alerts for matched live intel.
                 </div>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexShrink: 0 }}>
                     <div>
@@ -516,7 +516,7 @@ export function CampaignAlertPage() {
                         onClick={handleImportLiveFeed}
                         disabled={status === "loading"}
                     >
-                        {status === "loading" ? "Loading..." : "Load Live Feed"}
+                        {status === "loading" ? "Loading..." : "Load Live Feeds"}
                     </button>
                     <button
                         style={{
@@ -536,7 +536,7 @@ export function CampaignAlertPage() {
                 <div style={s.corrResult}>
                     <div style={s.corrTitle}>Live Feed Import</div>
                     <div style={s.corrMeta}>
-                        {lastLiveFeed.count || 0} AbuseIPDB blacklist IP(s) added to Redis hot:iocs
+                        {lastLiveFeed.count || 0} AbuseIPDB/OTX IP(s) added to Redis hot:iocs
                     </div>
                     {lastLiveFeed.message && (
                         <div style={s.corrMessage}>{lastLiveFeed.message}</div>
@@ -544,8 +544,11 @@ export function CampaignAlertPage() {
                     {lastLiveFeed.imported?.map((item) => (
                         <div key={item.value} style={s.campMatch}>
                             <span style={s.campName}>{item.value}</span>
-                            <span style={s.campActor}>AbuseIPDB: {item.abuse_score}</span>
-                            <span style={s.campActor}>Reports: {item.total_reports}</span>
+                            <span style={s.campActor}>Source: {item.source}</span>
+                            {item.abuse_score !== undefined && <span style={s.campActor}>AbuseIPDB: {item.abuse_score}</span>}
+                            {item.total_reports !== undefined && <span style={s.campActor}>Reports: {item.total_reports}</span>}
+                            {item.pulse_name && <span style={s.campActor}>Pulse: {item.pulse_name}</span>}
+                            {item.adversary && <span style={s.campActor}>Adversary: {item.adversary}</span>}
                             {item.country && <span style={s.campActor}>Country: {item.country}</span>}
                         </div>
                     ))}
@@ -559,7 +562,8 @@ export function CampaignAlertPage() {
                         Checked {lastCorr.top_iocs_checked || 0} IOCs |
                         {lastCorr.matched_campaigns?.length || 0} campaign(s) matched |
                         {lastCorr.alerts?.length || 0} new alert(s) |
-                        {lastCorr.live_intel?.length || 0} live AbuseIPDB lookup(s)
+                        {lastCorr.live_intel?.length || 0} AbuseIPDB lookup(s) |
+                        {lastCorr.otx_intel?.length || 0} OTX lookup(s)
                     </div>
                     {lastCorr.message && (
                         <div style={s.corrMessage}>{lastCorr.message}</div>
@@ -572,7 +576,7 @@ export function CampaignAlertPage() {
                             <span style={s.campCount}>{c.matched_count} IPs</span>
                             {c.live_intel?.length > 0 && (
                                 <div style={s.matchedIps}>
-                                    {c.live_intel.map((item) => `${item.value}: AbuseIPDB ${item.abuse_score}`).join(" | ")}
+                                    {c.live_intel.map((item) => `${item.value}: ${item.source || "intel"} ${item.abuse_score ?? item.pulse_count ?? ""}`).join(" | ")}
                                 </div>
                             )}
                             <div style={s.matchedIps}>{c.matched_ips?.join(" · ")}</div>
