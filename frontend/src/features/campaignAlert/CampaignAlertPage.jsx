@@ -6,6 +6,7 @@ import { useTheme } from "../../context/ThemeContext";
 
 // ── Slice ─────────────────────────────────────────────────────────────────────
 export const runCorrelation = createAsyncThunk("campaignAlert/correlate", async ({ topN = 20, threshold = 2 } = {}) => (await axios.post(`/api/campaigns/correlate?topN=${topN}&threshold=${threshold}`)).data);
+export const importLiveFeed = createAsyncThunk("campaignAlert/liveFeed", async ({ limit = 5, confidenceMinimum = 90 } = {}) => (await axios.post(`/api/campaigns/live-feed?limit=${limit}&confidenceMinimum=${confidenceMinimum}`)).data);
 export const fetchAlerts = createAsyncThunk("campaignAlert/alerts", async () => (await axios.get("/api/campaigns/alerts")).data);
 export const fetchActiveCamps = createAsyncThunk("campaignAlert/active", async () => (await axios.get("/api/campaigns/active")).data);
 
@@ -16,6 +17,7 @@ const slice = createSlice({
         liveAlerts: [],
         activeCampaigns: [],
         lastCorrelation: null,
+        lastLiveFeed: null,
         status: "idle",
         error: null
     },
@@ -39,6 +41,15 @@ const slice = createSlice({
             s.status = "failed";
             s.error = a.error?.message || "Correlation failed";
         });
+        b.addCase(importLiveFeed.pending, (s) => { s.status = "loading"; s.error = null; });
+        b.addCase(importLiveFeed.fulfilled, (s, a) => {
+            s.lastLiveFeed = a.payload;
+            s.status = "succeeded";
+        });
+        b.addCase(importLiveFeed.rejected, (s, a) => {
+            s.status = "failed";
+            s.error = a.error?.message || "Live feed import failed";
+        });
     },
 });
 
@@ -47,6 +58,7 @@ export const selectAlerts = (s) => s.campaignAlert.alerts;
 export const selectLiveAlerts = (s) => s.campaignAlert.liveAlerts;
 export const selectActiveCampaigns = (s) => s.campaignAlert.activeCampaigns;
 export const selectLastCorrelation = (s) => s.campaignAlert.lastCorrelation;
+export const selectLastLiveFeed = (s) => s.campaignAlert.lastLiveFeed;
 export const selectCAStatus = (s) => s.campaignAlert.status;
 export const selectCAError = (s) => s.campaignAlert.error;
 export default slice.reducer;
@@ -59,6 +71,7 @@ export function CampaignAlertPage() {
     const liveAlerts = useSelector(selectLiveAlerts);
     const activeCampaigns = useSelector(selectActiveCampaigns);
     const lastCorr = useSelector(selectLastCorrelation);
+    const lastLiveFeed = useSelector(selectLastLiveFeed);
     const status = useSelector(selectCAStatus);
     const error = useSelector(selectCAError);
     const [threshold, setThreshold] = useState(2);
@@ -154,6 +167,15 @@ export function CampaignAlertPage() {
 
     const handleCorrelate = () => {
         dispatch(runCorrelation({ topN: 20, threshold }))
+            .then(() => {
+                dispatch(fetchAlerts());
+                dispatch(fetchActiveCamps());
+            });
+    };
+
+    const handleImportLiveFeed = () => {
+        dispatch(importLiveFeed({ limit: 5, confidenceMinimum: 90 }))
+            .then(() => dispatch(runCorrelation({ topN: 20, threshold: 1 })))
             .then(() => {
                 dispatch(fetchAlerts());
                 dispatch(fetchActiveCamps());
@@ -486,6 +508,19 @@ export function CampaignAlertPage() {
                     <button
                         style={{
                             ...s.btn,
+                            background: "#2563EB",
+                            boxShadow: "0 2px 8px #2563EB40",
+                            opacity: status === "loading" ? 0.7 : 1,
+                            cursor: status === "loading" ? "not-allowed" : "pointer",
+                        }}
+                        onClick={handleImportLiveFeed}
+                        disabled={status === "loading"}
+                    >
+                        {status === "loading" ? "Loading..." : "Load Live Feed"}
+                    </button>
+                    <button
+                        style={{
+                            ...s.btn,
                             opacity: status === "loading" ? 0.7 : 1,
                             cursor: status === "loading" ? "not-allowed" : "pointer",
                         }}
@@ -497,13 +532,34 @@ export function CampaignAlertPage() {
                 </div>
             </div>
 
+            {lastLiveFeed && (
+                <div style={s.corrResult}>
+                    <div style={s.corrTitle}>Live Feed Import</div>
+                    <div style={s.corrMeta}>
+                        {lastLiveFeed.count || 0} AbuseIPDB blacklist IP(s) added to Redis hot:iocs
+                    </div>
+                    {lastLiveFeed.message && (
+                        <div style={s.corrMessage}>{lastLiveFeed.message}</div>
+                    )}
+                    {lastLiveFeed.imported?.map((item) => (
+                        <div key={item.value} style={s.campMatch}>
+                            <span style={s.campName}>{item.value}</span>
+                            <span style={s.campActor}>AbuseIPDB: {item.abuse_score}</span>
+                            <span style={s.campActor}>Reports: {item.total_reports}</span>
+                            {item.country && <span style={s.campActor}>Country: {item.country}</span>}
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {lastCorr && (
                 <div style={s.corrResult}>
                     <div style={s.corrTitle}>Last Correlation Result</div>
                     <div style={s.corrMeta}>
                         Checked {lastCorr.top_iocs_checked || 0} IOCs |
                         {lastCorr.matched_campaigns?.length || 0} campaign(s) matched |
-                        {lastCorr.alerts?.length || 0} new alert(s)
+                        {lastCorr.alerts?.length || 0} new alert(s) |
+                        {lastCorr.live_intel?.length || 0} live AbuseIPDB lookup(s)
                     </div>
                     {lastCorr.message && (
                         <div style={s.corrMessage}>{lastCorr.message}</div>
@@ -512,7 +568,13 @@ export function CampaignAlertPage() {
                         <div key={c.campaign_id} style={s.campMatch}>
                             <span style={s.campName}>{c.campaign_name}</span>
                             <span style={s.campActor}>Actor: {c.actor_name}</span>
+                            {c.source && <span style={s.campActor}>Source: {c.source}</span>}
                             <span style={s.campCount}>{c.matched_count} IPs</span>
+                            {c.live_intel?.length > 0 && (
+                                <div style={s.matchedIps}>
+                                    {c.live_intel.map((item) => `${item.value}: AbuseIPDB ${item.abuse_score}`).join(" | ")}
+                                </div>
+                            )}
                             <div style={s.matchedIps}>{c.matched_ips?.join(" · ")}</div>
                         </div>
                     ))}

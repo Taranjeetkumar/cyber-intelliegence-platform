@@ -3,9 +3,190 @@ const neo4j = require("neo4j-driver");
 const { getNeo4jSession } = require("../config/neo4j");
 const { getRedis } = require("../config/redis");
 const Alert = require("../models/Alert");
+const IOC = require("../models/IOC");
+const { checkIpReputation, getBlacklistedIps } = require("./abuseIpDbService");
 
 const toNum = (val) =>
   val && typeof val === "object" && "low" in val ? val.low : Number(val);
+
+const isPublicIpv4 = (value) => {
+  const parts = String(value).split(".").map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return false;
+  }
+
+  const [a, b] = parts;
+  if (a === 0 || a === 10 || a === 127 || a >= 224) return false;
+  if (a === 100 && b >= 64 && b <= 127) return false;
+  if (a === 169 && b === 254) return false;
+  if (a === 172 && b >= 16 && b <= 31) return false;
+  if (a === 192 && b === 168) return false;
+
+  return true;
+};
+
+const syncLiveAbuseIntel = async (iocValues) => {
+  const publicIps = [...new Set(iocValues.filter(isPublicIpv4))];
+  if (!publicIps.length) return [];
+
+  const session = getNeo4jSession();
+  const intel = [];
+
+  try {
+    for (const ip of publicIps) {
+      const reputation = await checkIpReputation(ip);
+      const data = reputation.data;
+
+      if (!data) {
+        intel.push({
+          value: ip,
+          source: "abuseipdb",
+          configured: reputation.configured,
+          error: reputation.error || "No AbuseIPDB data returned",
+        });
+        continue;
+      }
+
+      const abuseScore = Number(data.abuseConfidenceScore || 0);
+      const totalReports = Number(data.totalReports || 0);
+      const now = new Date();
+
+      await IOC.findOneAndUpdate(
+        { value: ip, type: "ip" },
+        {
+          $set: {
+            last_seen: now,
+            source: "abuseipdb-live",
+            confidence: Math.max(abuseScore, 50),
+            "enrichment.whois_country": data.countryCode,
+            "enrichment.isp": data.isp,
+            "enrichment.usage_type": data.usageType,
+            "enrichment.abuseipdb_score": abuseScore,
+            "enrichment.abuseipdb_reports": totalReports,
+            "enrichment.abuseipdb_last_reported": data.lastReportedAt,
+          },
+          $addToSet: { tags: { $each: ["live-intel", "abuseipdb"] } },
+          $setOnInsert: { first_seen: now },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+
+      await session.run(
+        `
+        MERGE (i:IP {value: $ip})
+        SET i.abuseScore = $abuseScore,
+            i.totalReports = $totalReports,
+            i.country = $country,
+            i.isp = $isp,
+            i.usageType = $usageType,
+            i.lastReportedAt = $lastReportedAt,
+            i.last_seen = $ts
+        RETURN i
+        `,
+        {
+          ip,
+          abuseScore,
+          totalReports,
+          country: data.countryCode || "",
+          isp: data.isp || "",
+          usageType: data.usageType || "",
+          lastReportedAt: data.lastReportedAt || "",
+          ts: now.toISOString(),
+        }
+      );
+
+      intel.push({
+        value: ip,
+        source: "abuseipdb",
+        configured: true,
+        abuse_score: abuseScore,
+        total_reports: totalReports,
+        country: data.countryCode,
+        isp: data.isp,
+        usage_type: data.usageType,
+        last_reported: data.lastReportedAt,
+      });
+    }
+  } finally {
+    await session.close();
+  }
+
+  return intel;
+};
+
+const buildLiveIntelCampaignMatches = (liveIntel) => {
+  const threshold = Number(process.env.CAMPAIGN_ABUSEIPDB_SCORE_THRESHOLD || 75);
+  const highRisk = liveIntel.filter((item) => Number(item.abuse_score || 0) >= threshold);
+
+  if (!highRisk.length) return [];
+
+  return [
+    {
+      campaign_name: "LIVE_ABUSEIPDB_HIGH_RISK",
+      campaign_id: "LIVE_ABUSEIPDB_HIGH_RISK",
+      actor_name: "Live AbuseIPDB intelligence",
+      matched_count: highRisk.length,
+      matched_ips: highRisk.map((item) => item.value),
+      source: "abuseipdb-live",
+      severity: highRisk.some((item) => item.abuse_score >= 90) ? "critical" : "high",
+      live_intel: highRisk,
+    },
+  ];
+};
+
+const importLiveAbuseFeed = async ({ limit = 5, confidenceMinimum = 90 } = {}) => {
+  const feed = await getBlacklistedIps({ limit, confidenceMinimum });
+  if (feed.error) return { ...feed, imported: [] };
+
+  const redis = getRedis();
+  const imported = [];
+  const now = new Date();
+
+  for (const item of feed.data) {
+    const value = item.ipAddress || item.ip;
+    if (!value) continue;
+
+    const abuseScore = Number(item.abuseConfidenceScore || confidenceMinimum || 90);
+    const totalReports = Number(item.totalReports || item.numReports || 0);
+
+    await IOC.findOneAndUpdate(
+      { value, type: "ip" },
+      {
+        $set: {
+          last_seen: now,
+          source: "abuseipdb-blacklist",
+          confidence: abuseScore,
+          "enrichment.whois_country": item.countryCode,
+          "enrichment.abuseipdb_score": abuseScore,
+          "enrichment.abuseipdb_reports": totalReports,
+          "enrichment.abuseipdb_last_reported": item.lastReportedAt,
+        },
+        $addToSet: { tags: { $each: ["live-feed", "abuseipdb", "blacklist"] } },
+        $setOnInsert: { first_seen: now },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    await redis.zAdd("hot:iocs", [{ score: Math.max(abuseScore, 1), value }]);
+
+    imported.push({
+      value,
+      abuse_score: abuseScore,
+      total_reports: totalReports,
+      country: item.countryCode,
+      last_reported: item.lastReportedAt,
+    });
+  }
+
+  return {
+    configured: feed.configured,
+    imported,
+    count: imported.length,
+    message: imported.length
+      ? `${imported.length} live AbuseIPDB blacklist IPs added to Redis hot:iocs`
+      : "AbuseIPDB returned no blacklist IPs for the current filters",
+  };
+};
 
 // Core correlation: read hot IOCs from Redis → check campaign membership in Neo4j
 const runCorrelation = async (topN = 20, threshold = 2) => {
@@ -31,6 +212,10 @@ const runCorrelation = async (topN = 20, threshold = 2) => {
 
   const ipList = topIocs.map((i) => i.value);
   console.log(`Campaign Correlation: Checking IPs: ${ipList.join(", ")}`);
+
+  console.log("Campaign Correlation: Pulling live AbuseIPDB data for public IPs...");
+  const liveIntel = await syncLiveAbuseIntel(ipList);
+  console.log(`Campaign Correlation: AbuseIPDB checked ${liveIntel.length} public IPs`);
 
   const session = getNeo4jSession();
   let campaignMatches = [];
@@ -69,6 +254,8 @@ const runCorrelation = async (topN = 20, threshold = 2) => {
       actor_name: r.get("actor_name"),
       matched_count: toNum(r.get("matched_count")),
       matched_ips: r.get("matched_ips"),
+      source: "neo4j-campaign-graph",
+      severity: "critical",
     }));
   } catch (neo4jError) {
     console.error("Campaign Correlation: Neo4j query error:", neo4jError.message);
@@ -77,12 +264,18 @@ const runCorrelation = async (topN = 20, threshold = 2) => {
     await session.close();
   }
 
+  campaignMatches = [
+    ...campaignMatches,
+    ...buildLiveIntelCampaignMatches(liveIntel),
+  ];
+
   if (!campaignMatches.length) {
     return {
       alerts: [],
       matched_campaigns: [],
       top_iocs_checked: ipList.length,
-      message: "No campaigns matched the IOCs. This could mean the IOCs are not associated with known campaigns in the graph database.",
+      live_intel: liveIntel,
+      message: "No campaigns matched the IOCs and no high-risk live AbuseIPDB indicators were found.",
     };
   }
 
@@ -103,7 +296,7 @@ const runCorrelation = async (topN = 20, threshold = 2) => {
 
     const alert = await Alert.create({
       type: "campaign_match",
-      severity: "critical",
+      severity: match.severity || "critical",
       title: `Campaign detected: ${match.campaign_name}`,
       description: `${match.matched_count} known IOCs matched to campaign operated by ${match.actor_name}`,
       campaign_id: campId,
@@ -115,11 +308,12 @@ const runCorrelation = async (topN = 20, threshold = 2) => {
     const alertPayload = JSON.stringify({
       alert_id: alert._id,
       type: "campaign_match",
-      severity: "critical",
+      severity: match.severity || "critical",
       campaign_name: match.campaign_name,
       actor_name: match.actor_name,
       matched_count: match.matched_count,
       matched_ips: match.matched_ips,
+      source: match.source,
       timestamp: new Date().toISOString(),
     });
 
@@ -134,6 +328,7 @@ const runCorrelation = async (topN = 20, threshold = 2) => {
   return {
     alerts: newAlerts,
     matched_campaigns: campaignMatches,
+    live_intel: liveIntel,
     top_iocs_checked: ipList.length,
   };
 };
@@ -150,4 +345,4 @@ const getActiveCampaigns = async () => {
   return redis.sMembers("campaign:active");
 };
 
-module.exports = { runCorrelation, getAlerts, getActiveCampaigns };
+module.exports = { runCorrelation, getAlerts, getActiveCampaigns, importLiveAbuseFeed };

@@ -17,7 +17,7 @@
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 module.exports = function (app) {
-  const BACKEND = "http://localhost:5000";
+  const BACKEND = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || "http://localhost:5050";
 
   // ── 1. SSE stream — must come BEFORE the catch-all /api rule ──────────────
   app.use(

@@ -2,6 +2,7 @@ const router = require("express").Router();
 const controller = require("../controllers/campaignAlertController");
 
 router.post("/correlate", controller.correlate);
+router.post("/live-feed", controller.importLiveFeed);
 router.get("/alerts", controller.getAlerts);
 router.get("/active", controller.activeCampaigns);
 
